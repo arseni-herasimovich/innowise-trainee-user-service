@@ -25,9 +25,13 @@ databaseChangeLog:
               - column:
                   name: holder
                   type: varchar(255)
+                  constraints:
+                    nullable: false
               - column:
                   name: expiration_date
                   type: timestamp
+                  constraints:
+                    nullable: false
 
         - addForeignKeyConstraint:
             constraintName: fk_card_info_user
