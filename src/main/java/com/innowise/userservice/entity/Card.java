@@ -25,10 +25,10 @@ public class Card {
     @Column(name = "number", nullable = false, unique = true)
     private String number;
 
-    @Column(name = "holder")
+    @Column(name = "holder", nullable = false)
     private String holder;
 
-    @Column(name = "expiration_date")
+    @Column(name = "expiration_date", nullable = false)
     private Instant expirationDate;
 
     @Override
