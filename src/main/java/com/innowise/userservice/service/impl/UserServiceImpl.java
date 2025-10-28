@@ -4,6 +4,7 @@ import com.innowise.userservice.dto.UserCreateRequest;
 import com.innowise.userservice.dto.UserResponse;
 import com.innowise.userservice.dto.UserUpdateRequest;
 import com.innowise.userservice.entity.User;
+import com.innowise.userservice.exception.UserEmailAlreadyExistsException;
 import com.innowise.userservice.exception.UserNotFoundException;
 import com.innowise.userservice.mapper.UserMapper;
 import com.innowise.userservice.repository.UserRepository;
@@ -24,6 +25,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse create(UserCreateRequest request) {
+        if (userRepository.existsByEmail(request.email())) {
+            throw new UserEmailAlreadyExistsException(request.email());
+        }
+
         return userMapper.toResponse(
                 userRepository.save(userMapper.toEntity(request))
         );
@@ -33,6 +38,12 @@ public class UserServiceImpl implements UserService {
     public UserResponse getById(UUID id) {
         return userRepository.findUserById(id)
                 .map(userMapper::toResponse)
+                .orElseThrow(() -> new UserNotFoundException(id));
+    }
+
+    @Override
+    public User getEntityById(UUID id) {
+        return userRepository.findUserById(id)
                 .orElseThrow(() -> new UserNotFoundException(id));
     }
 
@@ -51,12 +62,31 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void update(UUID id, UserUpdateRequest request) {
-        userRepository.update(id, request.name(), request.surname(), request.birthDate(), request.email());
+        userRepository.findUserById(id)
+                .ifPresentOrElse(
+                        user -> {
+                            if (userRepository.existsByEmail(request.email()) &&
+                                    !user.getEmail().equals(request.email())) {
+                                throw new UserEmailAlreadyExistsException(request.email());
+                            }
+                            userRepository.update(id, request.name(), request.surname(), request.birthDate(),
+                                    request.email());
+                        },
+                        () -> {
+                            throw new UserNotFoundException(id);
+                        }
+                );
     }
 
     @Override
     @Transactional
     public void delete(UUID id) {
-        userRepository.delete(id);
+        userRepository.findUserById(id)
+                .ifPresentOrElse(
+                        user -> userRepository.delete(id),
+                        () -> {
+                            throw new UserNotFoundException(id);
+                        }
+                );
     }
 }
