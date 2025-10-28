@@ -31,4 +31,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
             WHERE id = :id
             """, nativeQuery = true)
     void delete(UUID id);
+
+    boolean existsByEmail(String email);
 }

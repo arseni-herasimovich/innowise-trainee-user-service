@@ -30,4 +30,6 @@ public interface CardRepository extends JpaRepository<Card, UUID> {
         where c.id = :id
     """)
     void delete(UUID id);
+
+    boolean existsByNumber(String number);
 }
