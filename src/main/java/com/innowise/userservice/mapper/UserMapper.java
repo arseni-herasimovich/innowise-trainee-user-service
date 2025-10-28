@@ -6,9 +6,10 @@ import com.innowise.userservice.dto.UserUpdateRequest;
 import com.innowise.userservice.entity.User;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingConstants;
 import org.mapstruct.MappingTarget;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
 public interface UserMapper {
     User toEntity (UserCreateRequest request);
     UserResponse toResponse(User user);
