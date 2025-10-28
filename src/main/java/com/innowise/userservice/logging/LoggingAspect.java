@@ -26,14 +26,9 @@ public class LoggingAspect {
         var start = System.nanoTime();
         log.debug("Entering method: {}", method);
 
-        try {
-            Object result = pjp.proceed();
-            log.debug("Method: {} executed. Returned: {}. Time of execution: {} ms", method, result,
-                    (System.nanoTime() - start) / 1000000);
-            return result;
-        } catch (Throwable e) {
-            log.error("Exception in {}: {}", method, e.getMessage());
-            throw e;
-        }
+        Object result = pjp.proceed();
+        log.info("Method: {} executed. Returned: {}. Time of execution: {} ms", method, result,
+                (System.nanoTime() - start) / 1000000);
+        return result;
     }
 }
