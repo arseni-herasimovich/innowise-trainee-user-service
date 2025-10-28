@@ -4,15 +4,13 @@ import com.innowise.userservice.dto.UserCreateRequest;
 import com.innowise.userservice.dto.UserResponse;
 import com.innowise.userservice.dto.UserUpdateRequest;
 import com.innowise.userservice.entity.User;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
-import org.mapstruct.MappingConstants;
-import org.mapstruct.MappingTarget;
+import org.mapstruct.*;
 
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
 public interface UserMapper {
     User toEntity (UserCreateRequest request);
     UserResponse toResponse(User user);
     @Mapping(target = "id", ignore = true)
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     void update(UserUpdateRequest request, @MappingTarget User user);
 }

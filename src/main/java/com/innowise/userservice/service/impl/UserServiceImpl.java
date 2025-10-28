@@ -65,12 +65,12 @@ public class UserServiceImpl implements UserService {
         userRepository.findUserById(id)
                 .ifPresentOrElse(
                         user -> {
-                            if (userRepository.existsByEmail(request.email()) &&
-                                    !user.getEmail().equals(request.email())) {
+                            if (request.email() != null && !user.getEmail().equals(request.email())) {
                                 throw new UserEmailAlreadyExistsException(request.email());
                             }
-                            userRepository.update(id, request.name(), request.surname(), request.birthDate(),
-                                    request.email());
+                            userMapper.update(request, user);
+                            userRepository.update(user.getId(), user.getName(), user.getSurname(), user.getBirthDate(),
+                                    user.getEmail());
                         },
                         () -> {
                             throw new UserNotFoundException(id);
