@@ -10,6 +10,9 @@ import com.innowise.userservice.mapper.UserMapper;
 import com.innowise.userservice.repository.UserRepository;
 import com.innowise.userservice.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -25,6 +28,7 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
 
     @Override
+    @CachePut(value = "USER_CACHE", key = "#result.id()")
     public UserResponse create(UserCreateRequest request) {
         if (userRepository.existsByEmail(request.email())) {
             throw new UserEmailAlreadyExistsException(request.email());
@@ -37,6 +41,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "USER_CACHE", key = "#id")
     public UserResponse getById(UUID id) {
         return userRepository.findUserById(id)
                 .map(userMapper::toResponse)
@@ -55,6 +60,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "USER_CACHE", key = "#email")
     public UserResponse getByEmail(String email) {
         return userRepository.findUserByEmail(email)
                 .map(userMapper::toResponse)
@@ -63,6 +69,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "USER_CACHE", key = "#id")
     public void update(UUID id, UserUpdateRequest request) {
         userRepository.findUserById(id)
                 .ifPresentOrElse(
@@ -83,6 +90,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "USER_CACHE", key = "#id")
     public void delete(UUID id) {
         userRepository.findUserById(id)
                 .ifPresentOrElse(

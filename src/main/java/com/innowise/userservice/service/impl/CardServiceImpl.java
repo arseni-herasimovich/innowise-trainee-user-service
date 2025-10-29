@@ -9,6 +9,8 @@ import com.innowise.userservice.repository.CardRepository;
 import com.innowise.userservice.service.CardService;
 import com.innowise.userservice.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -22,8 +24,10 @@ public class CardServiceImpl implements CardService {
     private final UserService userService;
     private final CardRepository cardRepository;
     private final CardMapper cardMapper;
+    private final CacheManager cacheManager;
 
     @Override
+    @CacheEvict(value = "USER_CACHE", key = "#request.userId()")
     public CardResponse create(CardCreateRequest request) {
         if (cardRepository.existsByNumber(request.number())) {
             throw new CardNumberAlreadyExistsException(request.number());
@@ -52,9 +56,15 @@ public class CardServiceImpl implements CardService {
     @Override
     @Transactional
     public void delete(UUID id) {
+        var cache = cacheManager.getCache("USER_CACHE");
         cardRepository.findCardById(id)
                 .ifPresentOrElse(
-                        card -> cardRepository.delete(id),
+                        card -> {
+                            cardRepository.delete(id);
+                            if (cache != null) {
+                                cache.evict(card.getUser().getId());
+                            }
+                        },
                         () -> {
                             throw new CardNotFoundException(id);
                         }
