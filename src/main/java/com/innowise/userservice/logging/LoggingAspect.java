@@ -27,8 +27,7 @@ public class LoggingAspect {
         log.debug("Entering method: {}", method);
 
         Object result = pjp.proceed();
-        log.info("Method: {} executed. Returned: {}. Time of execution: {} ms", method, result,
-                (System.nanoTime() - start) / 1000000);
+        log.info("Method: {} executed. Time of execution: {} ms", method, (System.nanoTime() - start) / 1000000);
         return result;
     }
 }
