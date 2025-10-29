@@ -21,7 +21,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     boolean existsByEmail(String email);
 
     /*
-        We are not able to use pageable with entity graph (we need to resolve n+1)
+        There's no way to use pageable with entity graph (we need to resolve n+1)
         So we get user ids firstly and then fetch users with cards
      */
 

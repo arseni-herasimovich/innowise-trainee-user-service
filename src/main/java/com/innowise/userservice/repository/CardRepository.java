@@ -11,6 +11,8 @@ import java.util.UUID;
 
 public interface CardRepository extends JpaRepository<Card, UUID> {
 
+    boolean existsByNumber(String number);
+
     // redundant methods only to follow the task requirements
 
     @Query("from Card c where c.id = :id")
@@ -30,6 +32,4 @@ public interface CardRepository extends JpaRepository<Card, UUID> {
         where c.id = :id
     """)
     void delete(UUID id);
-
-    boolean existsByNumber(String number);
 }
