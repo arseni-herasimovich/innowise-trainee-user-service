@@ -25,8 +25,7 @@ public class RedisConfig {
     @Value("${spring.cache.redis.time-to-live:600}")
     private long timeToLive;
 
-    @Bean
-    public ObjectMapper redisObjectMapper() {
+    private ObjectMapper redisObjectMapper() {
         ObjectMapper om = new ObjectMapper();
         om.registerModule(new JavaTimeModule());
         om.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
