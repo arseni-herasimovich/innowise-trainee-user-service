@@ -9,11 +9,12 @@ import com.innowise.userservice.exception.UserNotFoundException;
 import com.innowise.userservice.mapper.UserMapper;
 import com.innowise.userservice.repository.UserRepository;
 import com.innowise.userservice.service.UserService;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
@@ -35,6 +36,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public UserResponse getById(UUID id) {
         return userRepository.findUserById(id)
                 .map(userMapper::toResponse)
@@ -42,21 +44,18 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User getEntityById(UUID id) {
-        return userRepository.findUserById(id)
-                .orElseThrow(() -> new UserNotFoundException(id));
+    public Page<UserResponse> getAllPaged(Pageable pageable) {
+        var ids = userRepository.findUserIds(pageable);
+        var users = userRepository.findAllWithCardsByIds(ids.toList()).stream().map(userMapper::toResponse).toList();
+        return new PageImpl<>(users, pageable, users.size());
     }
 
     @Override
+    @Transactional(readOnly = true)
     public UserResponse getByEmail(String email) {
         return userRepository.findUserByEmail(email)
                 .map(userMapper::toResponse)
                 .orElseThrow(() -> new UserNotFoundException(email));
-    }
-
-    @Override
-    public Page<UserResponse> getAllPaged(Pageable pageable) {
-        return userRepository.findAll(pageable).map(userMapper::toResponse);
     }
 
     @Override
@@ -65,7 +64,8 @@ public class UserServiceImpl implements UserService {
         userRepository.findUserById(id)
                 .ifPresentOrElse(
                         user -> {
-                            if (request.email() != null && !user.getEmail().equals(request.email())) {
+                            if (userRepository.existsByEmail(request.email()) &&
+                                    !user.getEmail().equals(request.email())) {
                                 throw new UserEmailAlreadyExistsException(request.email());
                             }
                             userMapper.update(request, user);
@@ -88,5 +88,11 @@ public class UserServiceImpl implements UserService {
                             throw new UserNotFoundException(id);
                         }
                 );
+    }
+
+    @Override
+    public User getEntityById(UUID id) {
+        return userRepository.findUserById(id)
+                .orElseThrow(() -> new UserNotFoundException(id));
     }
 }
