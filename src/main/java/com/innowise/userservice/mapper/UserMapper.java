@@ -11,6 +11,7 @@ public interface UserMapper {
     User toEntity (UserCreateRequest request);
     UserResponse toResponse(User user);
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "cards", ignore = true)
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     void update(UserUpdateRequest request, @MappingTarget User user);
 }
