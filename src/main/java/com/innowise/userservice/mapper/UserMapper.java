@@ -11,7 +11,6 @@ public interface UserMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "cards", ignore = true)
     User toEntity (UserCreateRequest request);
-    @Mapping(target = "id", ignore = true)
     UserResponse toResponse(User user);
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "cards", ignore = true)
