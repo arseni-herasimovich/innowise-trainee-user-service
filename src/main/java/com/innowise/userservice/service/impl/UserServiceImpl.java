@@ -46,8 +46,11 @@ public class UserServiceImpl implements UserService {
     @Override
     public Page<UserResponse> getAllPaged(Pageable pageable) {
         var ids = userRepository.findUserIds(pageable);
-        var users = userRepository.findAllWithCardsByIds(ids.toList()).stream().map(userMapper::toResponse).toList();
-        return new PageImpl<>(users, pageable, users.size());
+        var users = userRepository.findAllWithCardsByIds(ids.getContent())
+                .stream()
+                .map(userMapper::toResponse)
+                .toList();
+        return new PageImpl<>(users, pageable, ids.getTotalElements());
     }
 
     @Override
