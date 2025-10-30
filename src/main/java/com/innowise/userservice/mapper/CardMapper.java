@@ -9,6 +9,8 @@ import org.mapstruct.MappingConstants;
 
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
 public interface CardMapper {
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "user", ignore = true)
     Card toEntity(CardCreateRequest request);
     @Mapping(target = "userId", source = "user.id")
     CardResponse toResponse(Card card);
