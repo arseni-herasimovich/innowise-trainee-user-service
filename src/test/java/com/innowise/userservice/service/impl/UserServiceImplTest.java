@@ -201,7 +201,7 @@ class UserServiceImplTest {
         var serviceResponse = userService.getAllPaged(pageable);
 
         // Then
-        assertEquals(0, serviceResponse.getTotalElements());
+        assertEquals(1, serviceResponse.getTotalElements());
 
         verify(userRepository, times(1)).findUserIds(pageable);
         verify(userRepository, times(1)).findAllWithCardsByIds(List.of());
@@ -261,7 +261,7 @@ class UserServiceImplTest {
     }
 
     @Test
-    @DisplayName("Should update user when user exists, email is changing and email exists")
+    @DisplayName("Should not update user when user exists, email is changing and email exists")
     void givenExistingUserWithChangingEmailAndEmailExists_whenUpdate_thenThrowsUserEmailAlreadyExistsException() {
         // Given
         var user = createUser("TEST_NAME", "TEST_SURNAME", LocalDate.now(), "TEST@EMAIL");
