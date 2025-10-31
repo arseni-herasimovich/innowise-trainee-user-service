@@ -2,6 +2,7 @@ package com.innowise.userservice.exception.handler;
 
 import com.innowise.userservice.dto.ApiResponse;
 import com.innowise.userservice.exception.ApiException;
+import com.innowise.userservice.exception.InvalidDateFormatException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.MessageSourceResolvable;
 import org.springframework.http.HttpStatus;
@@ -9,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
@@ -55,7 +57,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<ApiResponse<?>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
         String message = String.format(
                 "Invalid value for parameter '%s'. Expected type: %s",
                 ex.getName(),
@@ -87,16 +89,28 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ApiResponse<?>> handleHttpMessageNotReadable(HttpMessageNotReadableException e) {
+    public ResponseEntity<ApiResponse<Void>> handleHttpMessageNotReadable(HttpMessageNotReadableException e) {
+        if (e.getMostSpecificCause() instanceof InvalidDateFormatException ex) {
+            return handleApiException(ex);
+        }
         log.debug("Cannot read request body: {}", e.getMessage());
         return ResponseEntity
                 .badRequest()
                 .body(ApiResponse.error("Invalid request body"));
     }
 
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMissingRequestParameter(MissingServletRequestParameterException e) {
+        log.debug("Required parameter is missing: {}", e.getParameterName());
+        return ResponseEntity
+                .badRequest()
+                .body(ApiResponse.error("Parameter is missing: " + e.getParameterName()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGeneralException(Exception e) {
-        log.error("Exception occurred: {}", e.getMessage());
+        log.error("Exception occurred: {}. Message: {}", e.getClass(), e.getMessage());
+        log.debug("Exception:", e);
         return ResponseEntity
                 .internalServerError()
                 .body(ApiResponse.error("Internal server error")

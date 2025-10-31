@@ -7,6 +7,7 @@ import com.innowise.userservice.dto.UserUpdateRequest;
 import com.innowise.userservice.service.UserService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -44,9 +45,8 @@ public class UserController {
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<UserResponse>> get(
             @RequestParam(value = "email")
-            @Email(message = "Please provide correct email address")
+            @NotBlank @Email(message = "Please provide correct email address")
             String email) {
-
         return ResponseEntity.ok(
                 ApiResponse.success("User successfully found", userService.getByEmail(email))
         );
