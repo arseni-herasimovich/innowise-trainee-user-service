@@ -14,6 +14,7 @@ services:
       - user_service_net
     environment:
       - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_SECONDARY_PROFILE=prod
       - DB_HOST=user_service_postgres
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
