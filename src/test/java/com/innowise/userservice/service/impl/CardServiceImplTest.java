@@ -20,8 +20,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -106,7 +105,7 @@ class CardServiceImplTest {
     @DisplayName("Should return card response when getting existing card by ID")
     void givenExistingCard_whenGetById_thenReturnsCardResponse() {
         // Given
-        var card = createCard("TEST_NUMBER", "TEST_HOLDER", Instant.now().plus(24, ChronoUnit.HOURS));
+        var card = createCard("TEST_NUMBER", "TEST_HOLDER", LocalDate.now().plusDays(1));
         var response = createCardResponse(card, UUID.randomUUID());
 
         // When
@@ -126,7 +125,7 @@ class CardServiceImplTest {
     @DisplayName("Should throw CardNotFoundException when getting non-existing card by ID")
     void givenNonExistingCard_whenGetById_thenThrowsCardNotFoundException() {
         // Given
-        var card = createCard("TEST_NUMBER", "TEST_HOLDER", Instant.now().plus(24, ChronoUnit.HOURS));
+        var card = createCard("TEST_NUMBER", "TEST_HOLDER", LocalDate.now().plusDays(1));
 
         // When
         when(cardRepository.findCardById(card.getId())).thenReturn(Optional.empty());
@@ -143,7 +142,7 @@ class CardServiceImplTest {
     void givenExistingCards_whenGetAllPaged_thenReturnsPageOfCardResponses() {
         // Given
         var card = createCard("TEST_NUMBER", "TEST_HOLDER",
-                Instant.now().plus(24, ChronoUnit.HOURS));
+                LocalDate.now().plusDays(1));
         var response = createCardResponse(card, UUID.randomUUID());
         var pageable = PageRequest.of(0, 10);
         var page = new PageImpl<>(List.of(card), pageable, 1);
@@ -186,7 +185,7 @@ class CardServiceImplTest {
     @DisplayName("Should delete card and evict user cache when card exists")
     void givenExistingCard_whenDelete_thenDeletesCardAndEvictsUserCache() {
         // Given
-        var card = createCard("TEST_NUMBER", "TEST_HOLDER", Instant.now().plus(24, ChronoUnit.HOURS));
+        var card = createCard("TEST_NUMBER", "TEST_HOLDER", LocalDate.now().plusDays(1));
         var user = createUser(UUID.randomUUID());
         card.setUser(user);
 
@@ -222,7 +221,7 @@ class CardServiceImplTest {
                 UUID.randomUUID(),
                 "TEST_NUMBER",
                 "TEST_HOLDER",
-                Instant.now().plus(24, ChronoUnit.HOURS)
+                LocalDate.now().plusDays(1)
         );
     }
 
@@ -232,7 +231,7 @@ class CardServiceImplTest {
         return user;
     }
 
-    private Card createCard(String number, String holder, Instant expirationDate) {
+    private Card createCard(String number, String holder, LocalDate expirationDate) {
         return new Card(
                 UUID.randomUUID(),
                 null,

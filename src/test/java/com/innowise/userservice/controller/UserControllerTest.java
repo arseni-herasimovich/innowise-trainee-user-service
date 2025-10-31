@@ -105,9 +105,8 @@ class UserControllerTest {
     @DisplayName("Should return conflict when creating user with existing email")
     void givenExistingEmail_whenCreate_thenReturnsConflict() {
         // Given
-        var user = new User();
-        user.setEmail("TEST@EMAIL");
-        userRepository.save(user);
+        var newUser = createTestUser();
+        userRepository.save(newUser);
 
         var request = new UserCreateRequest(
                 "TEST_NAME",
@@ -200,8 +199,7 @@ class UserControllerTest {
     @DisplayName("Should return user response when getting existing user by id")
     void givenExistingId_whenGetById_thenReturnsUserResponse() {
         // Given
-        var newUser = new User();
-        newUser.setEmail("TEST@EMAIL");
+        var newUser = createTestUser();
         var id = userRepository.save(newUser).getId();
 
         // When
@@ -232,8 +230,7 @@ class UserControllerTest {
     @DisplayName("Should return not found when getting non-existing user by Id")
     void givenNotExistingId_whenGetById_thenReturnsNotFound() {
         // Given
-        var newUser = new User();
-        newUser.setEmail("TEST@EMAIL");
+        var newUser = createTestUser();
         userRepository.save(newUser);
 
         // When
@@ -257,8 +254,7 @@ class UserControllerTest {
     @DisplayName("Should return user response when getting existing user by email")
     void givenExistingEmail_whenGetByEmail_thenReturnsUserResponse() {
         // Given
-        var newUser = new User();
-        newUser.setEmail("TEST@EMAIL");
+        var newUser = createTestUser();
         var email = userRepository.save(newUser).getEmail();
 
         // When
@@ -289,8 +285,7 @@ class UserControllerTest {
     @DisplayName("Should return not found when getting non-existing user by email")
     void givenNotExistingEmail_whenGetByEmail_thenReturnsNotFound() {
         // Given
-        var newUser = new User();
-        newUser.setEmail("TEST@EMAIL");
+        var newUser = createTestUser();
         userRepository.save(newUser);
 
         // When
@@ -315,9 +310,8 @@ class UserControllerTest {
     void givenFewerPagesThanPageSize_whenGetAllUsers_thenReturnsPageOfUsers() {
         // Given
         for (int i = 1; i <= 2; i++) {
-            var user = new User();
-            user.setEmail("user" + i + "@example.com");
-            userRepository.save(user);
+            var newUser = createUniqueUser(i);
+            userRepository.save(newUser);
         }
 
         // When
@@ -369,9 +363,8 @@ class UserControllerTest {
     void givenMoreUsersThanPageSize_whenGetAllUsers_thenReturnsPaginatedResult() {
         // Given
         for (int i = 1; i <= 5; i++) {
-            var user = new User();
-            user.setEmail("user" + i + "@example.com");
-            userRepository.save(user);
+            var newUser = createUniqueUser(i);
+            userRepository.save(newUser);
         }
 
         // When
@@ -398,8 +391,7 @@ class UserControllerTest {
     @DisplayName("Should update user when user exists and email is not changing")
     void givenExistingUserWithoutChangingEmail_whenUpdate_thenUpdatesUser() {
         // Given
-        var newUser = new User();
-        newUser.setEmail("TEST@EMAIL");
+        var newUser = createTestUser();
         var id = userRepository.save(newUser).getId();
 
         var request = new UserUpdateRequest(
@@ -437,8 +429,7 @@ class UserControllerTest {
     @DisplayName("Should update user when user exists, email is changing and email does not exist")
     void givenExistingUserWithChangingEmailAndEmailNotExists_whenUpdate_thenUpdatesUser() {
         // Given
-        var newUser = new User();
-        newUser.setEmail("TEST@EMAIL");
+        var newUser = createTestUser();
         var id = userRepository.save(newUser).getId();
 
         var request = new UserUpdateRequest(
@@ -476,19 +467,17 @@ class UserControllerTest {
     @DisplayName("Should not update user when user exists, email is changing and email exists")
     void givenExistingUserWithChangingEmailAndEmailExists_whenUpdate_thenReturnsConflict() {
         // Given
-        var existingUser = new User();
-        existingUser.setEmail("EXISTING@EMAIL");
+        var existingUser = createUniqueUser(1);
         userRepository.save(existingUser);
 
-        var newUser = new User();
-        newUser.setEmail("TEST@EMAIL");
+        var newUser = createTestUser();
         var id = userRepository.save(newUser).getId();
 
         var request = new UserUpdateRequest(
-                "TEST_NAME",
-                "TEST_SURNAME",
-                LocalDate.now().minusDays(1),
-                "EXISTING@EMAIL"
+                "NEW_NAME",
+                "NEW_SURNAME",
+                LocalDate.now().minusDays(100),
+                existingUser.getEmail()
         );
 
         // When
@@ -550,8 +539,7 @@ class UserControllerTest {
     @DisplayName("Should delete user when user exists")
     void givenExistingUser_whenDelete_thenDeletesUser() {
         // Given
-        var newUser = new User();
-        newUser.setEmail("TEST@EMAIL");
+        var newUser = createTestUser();
         var id = userRepository.save(newUser).getId();
 
         // When
@@ -577,8 +565,7 @@ class UserControllerTest {
     @DisplayName("Should delete user when user exists")
     void givenNotExistingUser_whenDelete_thenReturnsNotFound() {
         // Given
-        var newUser = new User();
-        newUser.setEmail("TEST@EMAIL");
+        var newUser = createTestUser();
         var newUserId = userRepository.save(newUser).getId();
         var id = UUID.randomUUID();
 
@@ -599,6 +586,24 @@ class UserControllerTest {
         assertNull(response.getBody().getData());
 
         assertTrue(userRepository.existsById(newUserId));
+    }
+    
+    private User createTestUser() {
+        var user = new User();
+        user.setName("TEST_NAME");
+        user.setSurname("TEST_SURNAME");
+        user.setBirthDate(LocalDate.now().minusDays(1));
+        user.setEmail("TEST@EMAIL");
+        return user;
+    }
+
+    private User createUniqueUser(int i) {
+        var user = new User();
+        user.setName("TEST_NAME" + i);
+        user.setSurname("TEST_SURNAME" + i);
+        user.setBirthDate(LocalDate.now().minusDays(1));
+        user.setEmail("TEST@EMAIL" + i);
+        return user;
     }
 
     private record PagedResponse<T>(

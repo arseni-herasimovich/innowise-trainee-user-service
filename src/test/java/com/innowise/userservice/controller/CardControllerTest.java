@@ -26,8 +26,7 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
+import java.time.LocalDate;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -49,7 +48,6 @@ public class CardControllerTest {
     private static final GenericContainer<?> redis = new GenericContainer<>("redis:7")
             .withExposedPorts(6379)
             .waitingFor(Wait.forListeningPort());
-    ;
 
     @DynamicPropertySource
     static void configure(DynamicPropertyRegistry registry) {
@@ -73,15 +71,14 @@ public class CardControllerTest {
     @DisplayName("Should create card and return response when valid data provided")
     void givenValidData_whenCreate_thenSavesCardAndReturnsCardResponse() {
         // Given
-        var newUser = new User();
-        newUser.setEmail("TEST@EMAIL");
+        var newUser = createTestUser();
         var id = userRepository.save(newUser).getId();
 
         var request = new CardCreateRequest(
                 id,
                 "TEST_NUMBER",
                 "TEST_HOLDER",
-                Instant.now().plus(24, ChronoUnit.HOURS)
+                LocalDate.now().plusDays(1)
         );
 
         // When
@@ -110,22 +107,21 @@ public class CardControllerTest {
     @DisplayName("Should return Conflict when creating card with existing number")
     void givenExistingCardNumber_whenCreate_thenReturnsConflict() {
         // Given
-        var newUser = new User();
-        newUser.setEmail("TEST@EMAIL");
+        var newUser = createTestUser();
         var id = userRepository.save(newUser).getId();
         var newCard = new Card(
                 null,
                 newUser,
                 "TEST_NUMBER",
                 "TEST_HOLDER",
-                Instant.now().plus(24, ChronoUnit.HOURS)
+                LocalDate.now().plusDays(1)
         );
         cardRepository.save(newCard);
         var request = new CardCreateRequest(
                 id,
                 "TEST_NUMBER",
                 "TEST_HOLDER",
-                Instant.now().plus(24, ChronoUnit.HOURS)
+                LocalDate.now().plusDays(1)
         );
 
         // When
@@ -151,8 +147,7 @@ public class CardControllerTest {
     @DisplayName("Should return card response when getting existing card by id")
     void givenExistingId_whenGetById_thenReturnsCardResponse() {
         // Given
-        var newUser = new User();
-        newUser.setEmail("TEST@EMAIL");
+        var newUser = createTestUser();
         userRepository.save(newUser);
 
         var newCard = new Card(
@@ -160,7 +155,7 @@ public class CardControllerTest {
                 newUser,
                 "TEST_NUMBER",
                 "TEST_HOLDER",
-                Instant.now().plus(24, ChronoUnit.HOURS)
+                LocalDate.now().plusDays(1)
         );
         var id = cardRepository.save(newCard).getId();
 
@@ -190,8 +185,7 @@ public class CardControllerTest {
     @DisplayName("Should return not found when getting non-existing card by id")
     void givenNotExistingId_whenGetById_thenReturnsNotFound() {
         // Given
-        var newUser = new User();
-        newUser.setEmail("TEST@EMAIL");
+        var newUser = createTestUser();
         userRepository.save(newUser);
 
         var newCard = new Card(
@@ -199,7 +193,7 @@ public class CardControllerTest {
                 newUser,
                 "TEST_NUMBER",
                 "TEST_HOLDER",
-                Instant.now().plus(24, ChronoUnit.HOURS)
+                LocalDate.now().plusDays(1)
         );
         cardRepository.save(newCard);
 
@@ -224,8 +218,7 @@ public class CardControllerTest {
     @DisplayName("Should return page of cards when getting all cards")
     void givenFewerPagesThanPageSize_whenGetAllCards_thenReturnsPageOfCards() {
         // Given
-        var newUser = new User();
-        newUser.setEmail("TEST@EMAIL");
+        var newUser = createTestUser();
         userRepository.save(newUser);
 
         for (int i = 1; i <= 2; i++) {
@@ -234,7 +227,7 @@ public class CardControllerTest {
                     newUser,
                     "TEST_NUMBER" + i,
                     "TEST_HOLDER" + i,
-                    Instant.now().plus(24, ChronoUnit.HOURS)
+                    LocalDate.now().plusDays(1)
             ));
         }
 
@@ -286,8 +279,7 @@ public class CardControllerTest {
     @DisplayName("Should return paginated results when cards count more than page size")
     void givenMoreCardsThanPageSize_whenGetAllCards_thenReturnsPaginatedResult() {
         // Given
-        var newUser = new User();
-        newUser.setEmail("TEST@EMAIL");
+        var newUser = createTestUser();
         userRepository.save(newUser);
 
         for (int i = 1; i <= 5; i++) {
@@ -296,7 +288,7 @@ public class CardControllerTest {
                     newUser,
                     "TEST_NUMBER" + i,
                     "TEST_HOLDER" + i,
-                    Instant.now().plus(24, ChronoUnit.HOURS)
+                    LocalDate.now().plusDays(1)
             ));
         }
 
@@ -324,8 +316,7 @@ public class CardControllerTest {
     @DisplayName("Should delete card when card exists")
     void givenExistingCard_whenDelete_thenDeletesCard() {
         // Given
-        var newUser = new User();
-        newUser.setEmail("TEST@EMAIL");
+        var newUser = createTestUser();
         userRepository.save(newUser);
 
         var newCard = new Card(
@@ -333,7 +324,7 @@ public class CardControllerTest {
                 newUser,
                 "TEST_NUMBER",
                 "TEST_HOLDER",
-                Instant.now().plus(24, ChronoUnit.HOURS)
+                LocalDate.now().plusDays(1)
         );
         var id = cardRepository.save(newCard).getId();
 
@@ -360,8 +351,7 @@ public class CardControllerTest {
     @DisplayName("Should return not found when deleting non-existing card")
     void givenNotExistingCard_whenDelete_thenReturnsNotFound() {
         // Given
-        var newUser = new User();
-        newUser.setEmail("TEST@EMAIL");
+        var newUser = createTestUser();
         userRepository.save(newUser);
 
         var newCard = new Card(
@@ -369,7 +359,7 @@ public class CardControllerTest {
                 newUser,
                 "TEST_NUMBER",
                 "TEST_HOLDER",
-                Instant.now().plus(24, ChronoUnit.HOURS)
+                LocalDate.now().plusDays(1)
         );
         cardRepository.save(newCard);
 
@@ -390,6 +380,15 @@ public class CardControllerTest {
         assertNull(response.getBody().getData());
 
         assertEquals(1, cardRepository.findAll().size());
+    }
+
+    private User createTestUser() {
+        var user = new User();
+        user.setName("TEST_NAME");
+        user.setSurname("TEST_SURNAME");
+        user.setBirthDate(LocalDate.now().minusDays(1));
+        user.setEmail("TEST@EMAIL");
+        return user;
     }
 
     private record PagedResponse<T>(
