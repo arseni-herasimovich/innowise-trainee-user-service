@@ -1,0 +1,43 @@
+databaseChangeLog:
+  - changeSet:
+      id: add-constraints-users-table
+      author: arseni-herasimovich
+      changes:
+        - update:
+            tableName: users
+            columns:
+              - column:
+                  name: name
+                  value: 'Unknown'
+            where: name IS NULL
+
+        - update:
+            tableName: users
+            columns:
+              - column:
+                  name: surname
+                  value: 'Unknown'
+            where: surname IS NULL
+
+        - update:
+            tableName: users
+            columns:
+              - column:
+                  name: birth_date
+                  value: '2000-01-01'
+            where: birth_date IS NULL
+
+        - addNotNullConstraint:
+            tableName: users
+            columnName: name
+            columnDataType: varchar(255)
+
+        - addNotNullConstraint:
+            tableName: users
+            columnName: surname
+            columnDataType: varchar(255)
+
+        - addNotNullConstraint:
+            tableName: users
+            columnName: birth_date
+            columnDataType: date
