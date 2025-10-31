@@ -5,7 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
-import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -20,16 +20,16 @@ public interface CardRepository extends JpaRepository<Card, UUID> {
 
     @Modifying
     @Query(value = """
-        UPDATE card_info
-        SET user_id = :userId, number = :number, holder = :holder, expiration_date = :expirationDate
-        WHERE id = :id
-    """, nativeQuery = true)
-    void update(UUID id, UUID userId, String number, String holder, Instant expirationDate);
+                UPDATE card_info
+                SET user_id = :userId, number = :number, holder = :holder, expiration_date = :expirationDate
+                WHERE id = :id
+            """, nativeQuery = true)
+    void update(UUID id, UUID userId, String number, String holder, LocalDate expirationDate);
 
     @Modifying
     @Query(value = """
-        delete from Card c
-        where c.id = :id
-    """)
+                delete from Card c
+                where c.id = :id
+            """)
     void delete(UUID id);
 }

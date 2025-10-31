@@ -6,7 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -33,7 +33,7 @@ public class Card {
     private String holder;
 
     @Column(name = "expiration_date", nullable = false)
-    private Instant expirationDate;
+    private LocalDate expirationDate;
 
     @Override
     public boolean equals(Object o) {
