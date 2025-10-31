@@ -1,0 +1,21 @@
+databaseChangeLog:
+  - changeSet:
+      id: set-column-type-to-date-card-info-table
+      author: arseni-herasimovich
+      changes:
+        - addColumn:
+            tableName: card_info
+            columns:
+              - column:
+                  name: expiration_date_temp
+                  type: date
+                  valueComputed: "CAST(expiration_date AS DATE)"
+        - dropColumn:
+            tableName: card_info
+            columns:
+              - column:
+                  name: expiration_date
+        - renameColumn:
+            tableName: card_info
+            oldColumnName: expiration_date_temp
+            newColumnName: expiration_date
