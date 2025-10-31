@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 public record CardCreateRequest(
@@ -19,6 +20,6 @@ public record CardCreateRequest(
         
         @NotNull(message = "Expiration date can not be null")
         @Future(message = "Expiration date must be in the future")
-        Instant expirationDate
+        LocalDate expirationDate
 ) {
 }

@@ -5,25 +5,33 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.stereotype.Component;
 
 
 @Slf4j
 @Aspect
 @Component
-public class LoggingAspect {
+@ConditionalOnMissingBean(DevelopmentLoggingAspect.class)
+public class ProductionLoggingAspect {
     @Pointcut("execution(public * com.innowise.userservice.service..*(..))")
     public void serviceLayer() {
     }
 
     @Around("serviceLayer()")
     public Object log(ProceedingJoinPoint pjp) throws Throwable {
-        var method = pjp.getSignature().toShortString();
+        var className = pjp.getTarget().getClass().getSimpleName();
+        var methodName = pjp.getSignature().getName();
+
         var start = System.nanoTime();
-        log.trace("Entering method: {}", method);
+        log.debug("Entering method: {}.{}", className, methodName);
 
         Object result = pjp.proceed();
-        log.debug("Method: {} executed. Time of execution: {} ms", method, (System.nanoTime() - start) / 1000000);
+
+        var executionTime = (System.nanoTime() - start) / 1000000;
+        log.debug("Exiting method: {}.{}. Execution time: {} ms.",
+                className, methodName, executionTime);
+
         return result;
     }
 }

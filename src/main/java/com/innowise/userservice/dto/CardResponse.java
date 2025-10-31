@@ -1,6 +1,7 @@
 package com.innowise.userservice.dto;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 public record CardResponse(
@@ -8,6 +9,6 @@ public record CardResponse(
         UUID userId,
         String number,
         String holder,
-        Instant expirationDate
+        LocalDate expirationDate
 ) {
 }
