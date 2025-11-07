@@ -26,4 +26,6 @@ public interface UserService {
 
     @Transactional
     void delete(UUID id);
+
+    void evictUserCache(User user);
 }

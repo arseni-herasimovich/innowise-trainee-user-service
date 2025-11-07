@@ -14,3 +14,9 @@ spring:
     enabled: true
   jpa:
     open-in-view: false
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+  cache:
+    type: redis

@@ -32,9 +32,9 @@ public class CardServiceImpl implements CardService {
         var user = userService.getEntityById(request.userId());
         var card = cardMapper.toEntity(request);
         card.setUser(user);
-        return cardMapper.toResponse(
-                cardRepository.save(card)
-        );
+        cardRepository.save(card);
+        userService.evictUserCache(user);
+        return cardMapper.toResponse(card);
     }
 
     @Override
@@ -54,7 +54,10 @@ public class CardServiceImpl implements CardService {
     public void delete(UUID id) {
         cardRepository.findCardById(id)
                 .ifPresentOrElse(
-                        card -> cardRepository.delete(id),
+                        card -> {
+                            cardRepository.delete(id);
+                            userService.evictUserCache(card.getUser());
+                        },
                         () -> {
                             throw new CardNotFoundException(id);
                         }
