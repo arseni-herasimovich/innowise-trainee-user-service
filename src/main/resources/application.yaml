@@ -1,7 +1,4 @@
 spring:
-  profiles:
-    active: local
-    include: ${SPRING_SECONDARY_PROFILE:prod}
   application:
     name: Internship User Service
   datasource:
