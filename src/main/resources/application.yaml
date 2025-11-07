@@ -20,6 +20,3 @@ spring:
       port: ${REDIS_PORT}
   cache:
     type: redis
-logging:
-  level:
-    com.innowise: debug
