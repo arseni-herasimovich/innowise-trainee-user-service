@@ -1,0 +1,51 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: innowise/internship/user-service
+    container_name: app
+    ports:
+      - '8080:8080'
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - user_service_net
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_SECONDARY_PROFILE=prod
+      - DB_HOST=user_service_postgres
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - REDIS_HOST=user_service_redis
+
+  postgres:
+    image: postgres:15
+    container_name: user_service_postgres
+    volumes:
+      - user_service_postgres_data:/var/lib/postgresql/data
+    networks:
+      - user_service_net
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+
+  redis:
+    image: redis:7
+    container_name: user_service_redis
+    volumes:
+      - user_service_redis_data:/data
+    networks:
+      - user_service_net
+    command: redis-server --appendonly yes
+
+volumes:
+  user_service_postgres_data: {}
+  user_service_redis_data: {}
+
+networks:
+  user_service_net:
+    driver: bridge
