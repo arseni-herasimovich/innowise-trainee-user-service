@@ -1,0 +1,42 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-card-info-table
+      author: arseni-herasimovich
+      changes:
+        - createTable:
+            tableName: card_info
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: user_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: number
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: holder
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: expiration_date
+                  type: timestamp
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            constraintName: fk_card_info_user
+            baseTableName: card_info
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            onDelete: CASCADE

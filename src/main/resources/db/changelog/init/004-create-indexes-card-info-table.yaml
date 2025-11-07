@@ -1,0 +1,19 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-indexes-card-info-table
+      author: arseni-herasimovich
+      changes:
+        # improve join performance
+        - createIndex:
+            tableName: card_info
+            indexName: idx_card_info_user_id
+            columns:
+              - column:
+                  name: user_id
+        # filter expired / unexpired
+        - createIndex:
+            tableName: card_info
+            indexName: idx_card_info_expiration_date
+            columns:
+              - column:
+                  name: expiration_date

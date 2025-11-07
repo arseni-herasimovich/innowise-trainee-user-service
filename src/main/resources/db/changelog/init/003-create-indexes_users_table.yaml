@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-indexes-users-table
+      author: arseni-herasimovich
+      changes:
+        # search for surname / surname + name
+        - createIndex:
+            tableName: users
+            indexName: idx_users_surname_name
+            columns:
+              - column:
+                  name: surname
+              - column:
+                  name: name
