@@ -9,4 +9,8 @@ spring:
       host: ${REDIS_HOST}
 logging:
   level:
-    com.innowise: info
+    com.innowise: ${APP_LOGGING_LEVEL:info}
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka/
