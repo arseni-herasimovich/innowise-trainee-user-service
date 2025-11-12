@@ -1,33 +1,36 @@
 services:
-  app:
+  user-service:
     build:
       context: .
       dockerfile: Dockerfile
     image: innowise/internship/user-service
-    container_name: app
+    container_name: user-service
     ports:
-      - '8080:8080'
+      - '8081:8080'
     depends_on:
       - postgres
       - redis
     networks:
-      - user_service_net
+      - backend-net
+      - user-service-net
     environment:
       - SPRING_PROFILES_ACTIVE=docker
-      - SPRING_SECONDARY_PROFILE=prod
-      - DB_HOST=user_service_postgres
+      - SPRING_SECONDARY_PROFILE=dev
+      - APP_LOGGING_LEVEL=debug
+      - DB_HOST=user-service-postgres
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_NAME=${DB_NAME}
-      - REDIS_HOST=user_service_redis
+      - REDIS_HOST=user-service-redis
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-service:8761/eureka/
 
   postgres:
     image: postgres:15
-    container_name: user_service_postgres
+    container_name: user-service-postgres
     volumes:
-      - user_service_postgres_data:/var/lib/postgresql/data
+      - user-service-postgres-data:/var/lib/postgresql/data
     networks:
-      - user_service_net
+      - user-service-net
     environment:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
@@ -35,17 +38,19 @@ services:
 
   redis:
     image: redis:7
-    container_name: user_service_redis
+    container_name: user-service-redis
     volumes:
-      - user_service_redis_data:/data
+      - user-service-redis-data:/data
     networks:
-      - user_service_net
+      - user-service-net
     command: redis-server --appendonly yes
 
 volumes:
-  user_service_postgres_data: {}
-  user_service_redis_data: {}
+  user-service-postgres-data: {}
+  user-service-redis-data: {}
 
 networks:
-  user_service_net:
+  backend-net:
+    external: true
+  user-service-net:
     driver: bridge
