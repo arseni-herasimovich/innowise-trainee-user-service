@@ -17,7 +17,6 @@ import java.util.UUID;
 @NoArgsConstructor
 public class User {
     @Id
-    @GeneratedValue
     @Column(name = "id")
     private UUID id;
 
