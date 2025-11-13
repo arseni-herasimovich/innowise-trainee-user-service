@@ -35,11 +35,12 @@ public class SecurityService {
     public boolean canAccessCard(String userId, UUID cardId) {
         log.debug("Authorizing accessing card with cardId {} by user with id {}", cardId, userId);
         if (userId == null || cardId == null) {
-            return false;
+            throw new AccessDeniedException("You do not have rights to access this card");
         }
 
         return cardRepository.findCardById(cardId)
-                .map(card -> card.getUser().getId().toString().equals(userId))
+                .filter(card -> card.getUser().getId().toString().equals(userId))
+                .map(card -> true)
                 .orElseThrow(() -> new AccessDeniedException("You do not have rights to access this card"));
     }
 }
