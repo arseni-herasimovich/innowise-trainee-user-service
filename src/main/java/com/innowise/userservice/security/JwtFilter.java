@@ -55,8 +55,9 @@ public class JwtFilter extends OncePerRequestFilter {
             log.debug("Received response from Auth Service: {}", response);
             return response != null && response.getData() != null && response.getData().equals(true);
         } catch (Exception e) {
-            throw new RuntimeException("Error while validating token", e);
+            log.error("Error while validating token", e);
         }
+        return false;
     }
 
     private String getRole(String token) {
