@@ -38,7 +38,7 @@ public class GlobalExceptionHandler {
         log.debug("Access denied: {}", e.getMessage());
         return ResponseEntity
                 .status(HttpStatus.FORBIDDEN)
-                .body(ApiResponse.error("Access denied")
+                .body(ApiResponse.error(e.getMessage())
         );
     }
 
