@@ -4,7 +4,7 @@ import com.innowise.userservice.dto.UserCreateRequest;
 import com.innowise.userservice.dto.UserResponse;
 import com.innowise.userservice.dto.UserUpdateRequest;
 import com.innowise.userservice.entity.User;
-import com.innowise.userservice.exception.UserEmailAlreadyExistsException;
+import com.innowise.userservice.exception.UserAlreadyExistsException;
 import com.innowise.userservice.exception.UserNotFoundException;
 import com.innowise.userservice.mapper.UserMapper;
 import com.innowise.userservice.repository.UserRepository;
@@ -36,7 +36,11 @@ public class UserServiceImpl implements UserService {
     })
     public UserResponse create(UserCreateRequest request) {
         if (userRepository.existsByEmail(request.email())) {
-            throw new UserEmailAlreadyExistsException(request.email());
+            throw new UserAlreadyExistsException(request.email());
+        }
+
+        if (userRepository.existsById(request.id())) {
+            throw new UserAlreadyExistsException(request.id());
         }
 
         return userMapper.toResponse(
@@ -88,7 +92,7 @@ public class UserServiceImpl implements UserService {
                         user -> {
                             if (userRepository.existsByEmail(request.email()) &&
                                     !user.getEmail().equals(request.email())) {
-                                throw new UserEmailAlreadyExistsException(request.email());
+                                throw new UserAlreadyExistsException(request.email());
                             }
                             userMapper.update(request, user);
                             userRepository.update(user.getId(), user.getName(), user.getSurname(), user.getBirthDate(),

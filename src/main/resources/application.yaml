@@ -3,7 +3,7 @@ spring:
     active: local
     include: ${SPRING_SECONDARY_PROFILE:prod}
   application:
-    name: Internship User Service
+    name: user-service
   liquibase:
     change-log: classpath:db/changelog/master.yaml
     enabled: true

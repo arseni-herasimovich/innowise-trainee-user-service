@@ -1,62 +1,37 @@
 package com.innowise.userservice.controller;
 
-import com.innowise.userservice.dto.ApiResponse;
 import com.innowise.userservice.dto.CardCreateRequest;
-import com.innowise.userservice.dto.CardResponse;
-import com.innowise.userservice.dto.UserResponse;
 import com.innowise.userservice.entity.Card;
 import com.innowise.userservice.entity.User;
 import com.innowise.userservice.repository.CardRepository;
 import com.innowise.userservice.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.junit.jupiter.Container;
+import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.annotation.DirtiesContext;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.LocalDate;
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @Testcontainers
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-public class CardControllerTest {
-
-    @BeforeEach
-    void clearCardRepository() {
-        cardRepository.deleteAll();
-        userRepository.deleteAll();
-    }
-
-    @Container
-    private static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15");
-
-    @Container
-    private static final GenericContainer<?> redis = new GenericContainer<>("redis:7")
-            .withExposedPorts(6379)
-            .waitingFor(Wait.forListeningPort());
-
-    @DynamicPropertySource
-    static void configure(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-        registry.add("spring.data.redis.host", redis::getHost);
-        registry.add("spring.data.redis.port", redis::getFirstMappedPort);
-    }
+@SpringBootTest
+@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
+@AutoConfigureMockMvc(addFilters = false)
+class CardControllerTest extends AbstractIntegrationTest {
 
     @Autowired
     private CardRepository cardRepository;
@@ -64,346 +39,271 @@ public class CardControllerTest {
     @Autowired
     private UserRepository userRepository;
 
-    @Autowired
-    private TestRestTemplate restTemplate;
-
-    @Test
-    @DisplayName("Should create card and return response when valid data provided")
-    void givenValidData_whenCreate_thenSavesCardAndReturnsCardResponse() {
-        // Given
-        var newUser = createTestUser();
-        var id = userRepository.save(newUser).getId();
-
-        var request = new CardCreateRequest(
-                id,
-                "TEST_NUMBER",
-                "TEST_HOLDER",
-                LocalDate.now().plusDays(1)
-        );
-
-        // When
-        var response = restTemplate.exchange(
-                URI.CARD_CREATE,
-                HttpMethod.POST,
-                new HttpEntity<>(request),
-                new ParameterizedTypeReference<ApiResponse<CardResponse>>() {
-                }
-        );
-
-        // Then
-        assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertTrue(response.getBody().isSuccess());
-        assertNotNull(response.getBody().getData().id());
-
-        var card = cardRepository.findCardById(response.getBody().getData().id());
-        assertTrue(card.isPresent());
-        assertEquals(request.userId(), card.get().getUser().getId());
-        assertEquals(request.number(), card.get().getNumber());
-        assertEquals(request.holder(), card.get().getHolder());
+    @BeforeEach
+    void clearCardRepository() {
+        cardRepository.deleteAll();
+        userRepository.deleteAll();
     }
 
-    @Test
-    @DisplayName("Should return Conflict when creating card with existing number")
-    void givenExistingCardNumber_whenCreate_thenReturnsConflict() {
-        // Given
-        var newUser = createTestUser();
-        var id = userRepository.save(newUser).getId();
-        var newCard = new Card(
-                null,
-                newUser,
-                "TEST_NUMBER",
-                "TEST_HOLDER",
-                LocalDate.now().plusDays(1)
-        );
-        cardRepository.save(newCard);
-        var request = new CardCreateRequest(
-                id,
-                "TEST_NUMBER",
-                "TEST_HOLDER",
-                LocalDate.now().plusDays(1)
-        );
+    @Nested
+    @DisplayName("Create card")
+    class CreateTests {
+        @Test
+        @WithMockUser(roles = "ADMIN")
+        @DisplayName("Should create card and return response when valid data provided")
+        void givenValidData_whenCreate_thenSavesCardAndReturnsCardResponse() throws Exception {
+            // Given
+            var newUser = createTestUser();
+            var userId = userRepository.save(newUser).getId();
 
-        // When
-        var response = restTemplate.exchange(
-                URI.CARD_CREATE,
-                HttpMethod.POST,
-                new HttpEntity<>(request),
-                new ParameterizedTypeReference<ApiResponse<CardResponse>>() {
-                }
-        );
-
-        // Then
-        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertFalse(response.getBody().isSuccess());
-        assertNull(response.getBody().getData());
-
-        var cards = userRepository.findAll();
-        assertEquals(1, cards.size());
-    }
-
-    @Test
-    @DisplayName("Should return card response when getting existing card by id")
-    void givenExistingId_whenGetById_thenReturnsCardResponse() {
-        // Given
-        var newUser = createTestUser();
-        userRepository.save(newUser);
-
-        var newCard = new Card(
-                null,
-                newUser,
-                "TEST_NUMBER",
-                "TEST_HOLDER",
-                LocalDate.now().plusDays(1)
-        );
-        var id = cardRepository.save(newCard).getId();
-
-        // When
-        var response = restTemplate.exchange(
-                URI.GET_CARD_BY_ID,
-                HttpMethod.GET,
-                null,
-                new ParameterizedTypeReference<ApiResponse<CardResponse>>() {
-                },
-                id
-        );
-
-        // Then
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertTrue(response.getBody().isSuccess());
-        assertNotNull(response.getBody().getData().id());
-
-        var card = cardRepository.findCardById(id);
-        assertTrue(card.isPresent());
-        assertEquals(card.get().getId(), response.getBody().getData().id());
-        assertEquals(card.get().getNumber(), response.getBody().getData().number());
-    }
-
-    @Test
-    @DisplayName("Should return not found when getting non-existing card by id")
-    void givenNotExistingId_whenGetById_thenReturnsNotFound() {
-        // Given
-        var newUser = createTestUser();
-        userRepository.save(newUser);
-
-        var newCard = new Card(
-                null,
-                newUser,
-                "TEST_NUMBER",
-                "TEST_HOLDER",
-                LocalDate.now().plusDays(1)
-        );
-        cardRepository.save(newCard);
-
-        // When
-        var response = restTemplate.exchange(
-                URI.GET_CARD_BY_ID,
-                HttpMethod.GET,
-                null,
-                new ParameterizedTypeReference<ApiResponse<UserResponse>>() {
-                },
-                UUID.randomUUID()
-        );
-
-        // Then
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertFalse(response.getBody().isSuccess());
-        assertNull(response.getBody().getData());
-    }
-
-    @Test
-    @DisplayName("Should return page of cards when getting all cards")
-    void givenFewerPagesThanPageSize_whenGetAllCards_thenReturnsPageOfCards() {
-        // Given
-        var newUser = createTestUser();
-        userRepository.save(newUser);
-
-        for (int i = 1; i <= 2; i++) {
-            cardRepository.save(new Card(
-                    null,
-                    newUser,
-                    "TEST_NUMBER" + i,
-                    "TEST_HOLDER" + i,
+            var request = new CardCreateRequest(
+                    userId,
+                    "TEST_NUMBER",
+                    "TEST_HOLDER",
                     LocalDate.now().plusDays(1)
-            ));
+            );
+
+            // When, Then
+            mockMvc.perform(post("/api/v1/cards")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated())
+                    .andExpectAll(
+                            jsonPath("$.success", is(true)),
+                            jsonPath("$.data.number", is(request.number())),
+                            jsonPath("$.data.id").exists()
+                    );
+
+            var card = cardRepository.findAll().get(0);
+            assertNotNull(card);
+            assertEquals(request.userId(), card.getUser().getId());
+            assertEquals(request.number(), card.getNumber());
+            assertEquals(request.holder(), card.getHolder());
         }
 
-        // When
-        var response = restTemplate.exchange(
-                URI.CARD_GET_ALL + "?page=0&size=10",
-                HttpMethod.GET,
-                null,
-                new ParameterizedTypeReference<ApiResponse<PagedResponse<UserResponse>>>() {
-                }
-        );
-
-        // Then
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertTrue(response.getBody().isSuccess());
-        assertNotNull(response.getBody().getData());
-
-        assertEquals(2, response.getBody().getData().totalElements());
-        assertEquals(1, response.getBody().getData().totalPages());
-        assertEquals(2, response.getBody().getData().content().size());
-    }
-
-    @Test
-    @DisplayName("Should return empty page when no cards exist")
-    void givenNoCards_whenGetAllCards_thenReturnsEmptyPage() {
-        // Given
-
-        // When
-        var response = restTemplate.exchange(
-                URI.CARD_GET_ALL + "?page=0&size=10",
-                HttpMethod.GET,
-                null,
-                new ParameterizedTypeReference<ApiResponse<PagedResponse<UserResponse>>>() {
-                }
-        );
-
-        // Then
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertTrue(response.getBody().isSuccess());
-        assertNotNull(response.getBody().getData());
-
-        assertEquals(0, response.getBody().getData().totalPages());
-        assertEquals(0, response.getBody().getData().content().size());
-    }
-
-    @Test
-    @DisplayName("Should return paginated results when cards count more than page size")
-    void givenMoreCardsThanPageSize_whenGetAllCards_thenReturnsPaginatedResult() {
-        // Given
-        var newUser = createTestUser();
-        userRepository.save(newUser);
-
-        for (int i = 1; i <= 5; i++) {
-            cardRepository.save(new Card(
+        @Test
+        @WithMockUser(roles = "ADMIN")
+        @DisplayName("Should return Conflict when creating card with existing number")
+        void givenExistingCardNumber_whenCreate_thenReturnsConflict() throws Exception {
+            // Given
+            var newUser = createTestUser();
+            var userId = userRepository.save(newUser).getId();
+            var newCard = new Card(
                     null,
                     newUser,
-                    "TEST_NUMBER" + i,
-                    "TEST_HOLDER" + i,
+                    "TEST_NUMBER",
+                    "TEST_HOLDER",
                     LocalDate.now().plusDays(1)
-            ));
+            );
+            cardRepository.save(newCard);
+
+            var request = new CardCreateRequest(
+                    userId,
+                    "TEST_NUMBER",
+                    "TEST_HOLDER",
+                    LocalDate.now().plusDays(1)
+            );
+
+            // When, Then
+            mockMvc.perform(post("/api/v1/cards")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.success", is(false)))
+                    .andExpect(jsonPath("$.data").doesNotExist());
+
+            var cards = cardRepository.findAll();
+            assertEquals(1, cards.size());
+        }
+    }
+
+    @Nested
+    @DisplayName("Get card by id")
+    class GetByIdTests {
+        @Test
+        @WithMockUser(roles = "ADMIN")
+        @DisplayName("Should return card response when getting existing card by id")
+        void givenExistingId_whenGetById_thenReturnsCardResponse() throws Exception {
+            // Given
+            var newUser = createTestUser();
+            userRepository.save(newUser);
+
+            var newCard = new Card(
+                    null,
+                    newUser,
+                    "TEST_NUMBER",
+                    "TEST_HOLDER",
+                    LocalDate.now().plusDays(1)
+            );
+            var id = cardRepository.save(newCard).getId();
+
+            // When, Then
+            mockMvc.perform(get("/api/v1/cards/{id}", id))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success", is(true)))
+                    .andExpect(jsonPath("$.data.id", is(id.toString())))
+                    .andExpect(jsonPath("$.data.number", is(newCard.getNumber())))
+                    .andExpect(jsonPath("$.data.holder", is(newCard.getHolder())));
         }
 
-        // When
-        var response = restTemplate.exchange(
-                URI.CARD_GET_ALL + "?page=0&size=2",
-                HttpMethod.GET,
-                null,
-                new ParameterizedTypeReference<ApiResponse<PagedResponse<UserResponse>>>() {
-                }
-        );
+        @Test
+        @WithMockUser(roles = "ADMIN")
+        @DisplayName("Should return not found when getting non-existing card by id")
+        void givenNotExistingId_whenGetById_thenReturnsNotFound() throws Exception {
+            // Given
+            var newUser = createTestUser();
+            userRepository.save(newUser);
 
-        // Then
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertTrue(response.getBody().isSuccess());
-        assertNotNull(response.getBody().getData());
+            var newCard = new Card(
+                    null,
+                    newUser,
+                    "TEST_NUMBER",
+                    "TEST_HOLDER",
+                    LocalDate.now().plusDays(1)
+            );
+            cardRepository.save(newCard);
 
-        assertEquals(5, response.getBody().getData().totalElements());
-        assertEquals(3, response.getBody().getData().totalPages());
-        assertEquals(2, response.getBody().getData().content().size());
+            // When, Then
+            mockMvc.perform(get("/api/v1/cards/{id}", UUID.randomUUID()))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.success", is(false)))
+                    .andExpect(jsonPath("$.data").doesNotExist());
+        }
     }
 
-    @Test
-    @DisplayName("Should delete card when card exists")
-    void givenExistingCard_whenDelete_thenDeletesCard() {
-        // Given
-        var newUser = createTestUser();
-        userRepository.save(newUser);
+    @Nested
+    @DisplayName("Get all cards (paged)")
+    class GetAllTests {
+        @Test
+        @WithMockUser(roles = "ADMIN")
+        @DisplayName("Should return page of cards when getting all cards")
+        void givenFewerPagesThanPageSize_whenGetAllCards_thenReturnsPageOfCards() throws Exception {
+            // Given
+            var newUser = createTestUser();
+            userRepository.save(newUser);
 
-        var newCard = new Card(
-                null,
-                newUser,
-                "TEST_NUMBER",
-                "TEST_HOLDER",
-                LocalDate.now().plusDays(1)
-        );
-        var id = cardRepository.save(newCard).getId();
+            for (int i = 1; i <= 2; i++) {
+                cardRepository.save(new Card(
+                        null,
+                        newUser,
+                        "TEST_NUMBER" + i,
+                        "TEST_HOLDER" + i,
+                        LocalDate.now().plusDays(1)
+                ));
+            }
 
-        // When
-        var response = restTemplate.exchange(
-                URI.CARD_DELETE,
-                HttpMethod.DELETE,
-                null,
-                new ParameterizedTypeReference<ApiResponse<Void>>() {
-                },
-                id
-        );
+            // When, Then
+            mockMvc.perform(get("/api/v1/cards"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success", is(true)))
+                    .andExpect(jsonPath("$.data.totalElements", is(2)))
+                    .andExpect(jsonPath("$.data.totalPages", is(1)))
+                    .andExpect(jsonPath("$.data.content", hasSize(2)));
+        }
 
-        // Then
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertTrue(response.getBody().isSuccess());
-        assertNull(response.getBody().getData());
+        @Test
+        @WithMockUser(roles = "ADMIN")
+        @DisplayName("Should return empty page when no cards exist")
+        void givenNoCards_whenGetAllCards_thenReturnsEmptyPage() throws Exception {
+            // When, Then
+            mockMvc.perform(get("/api/v1/cards"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success", is(true)))
+                    .andExpect(jsonPath("$.data.totalPages", is(0)))
+                    .andExpect(jsonPath("$.data.content", hasSize(0)));
+        }
 
-        assertFalse(cardRepository.existsById(id));
+        @Test
+        @WithMockUser(roles = "ADMIN")
+        @DisplayName("Should return paginated results when cards count more than page size")
+        void givenMoreCardsThanPageSize_whenGetAllCards_thenReturnsPaginatedResult() throws Exception {
+            // Given
+            var newUser = createTestUser();
+            userRepository.save(newUser);
+
+            for (int i = 1; i <= 5; i++) {
+                cardRepository.save(new Card(
+                        null,
+                        newUser,
+                        "TEST_NUMBER" + i,
+                        "TEST_HOLDER" + i,
+                        LocalDate.now().plusDays(1)
+                ));
+            }
+
+            // When, Then
+            mockMvc.perform(get("/api/v1/cards?page=0&size=2"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success", is(true)))
+                    .andExpect(jsonPath("$.data.totalElements", is(5)))
+                    .andExpect(jsonPath("$.data.totalPages", is(3)))
+                    .andExpect(jsonPath("$.data.content", hasSize(2)));
+        }
     }
 
-    @Test
-    @DisplayName("Should return not found when deleting non-existing card")
-    void givenNotExistingCard_whenDelete_thenReturnsNotFound() {
-        // Given
-        var newUser = createTestUser();
-        userRepository.save(newUser);
+    @Nested
+    @DisplayName("Delete card")
+    class DeleteTests {
+        @Test
+        @WithMockUser(roles = "ADMIN")
+        @DisplayName("Should delete card when card exists")
+        void givenExistingCard_whenDelete_thenDeletesCard() throws Exception {
+            // Given
+            var newUser = createTestUser();
+            userRepository.save(newUser);
 
-        var newCard = new Card(
-                null,
-                newUser,
-                "TEST_NUMBER",
-                "TEST_HOLDER",
-                LocalDate.now().plusDays(1)
-        );
-        cardRepository.save(newCard);
+            var newCard = new Card(
+                    null,
+                    newUser,
+                    "TEST_NUMBER",
+                    "TEST_HOLDER",
+                    LocalDate.now().plusDays(1)
+            );
+            var id = cardRepository.save(newCard).getId();
 
-        // When
-        var response = restTemplate.exchange(
-                URI.CARD_DELETE,
-                HttpMethod.DELETE,
-                null,
-                new ParameterizedTypeReference<ApiResponse<Void>>() {
-                },
-                UUID.randomUUID()
-        );
+            // When, Then
+            mockMvc.perform(delete("/api/v1/cards/{id}", id))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success", is(true)))
+                    .andExpect(jsonPath("$.data").doesNotExist());
 
-        // Then
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertFalse(response.getBody().isSuccess());
-        assertNull(response.getBody().getData());
+            assertFalse(cardRepository.existsById(id));
+        }
 
-        assertEquals(1, cardRepository.findAll().size());
+        @Test
+        @WithMockUser(roles = "ADMIN")
+        @DisplayName("Should return not found when deleting not existing card")
+        void givenNotExistingCard_whenDelete_thenReturnsNotFound() throws Exception {
+            // Given
+            var newUser = createTestUser();
+            userRepository.save(newUser);
+
+            var newCard = new Card(
+                    null,
+                    newUser,
+                    "TEST_NUMBER",
+                    "TEST_HOLDER",
+                    LocalDate.now().plusDays(1)
+            );
+            cardRepository.save(newCard);
+
+            // When, Then
+            mockMvc.perform(delete("/api/v1/cards/{id}", UUID.randomUUID()))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.success", is(false)))
+                    .andExpect(jsonPath("$.data").doesNotExist());
+
+            assertEquals(1, cardRepository.findAll().size());
+        }
     }
 
     private User createTestUser() {
         var user = new User();
+        user.setId(UUID.randomUUID());
         user.setName("TEST_NAME");
         user.setSurname("TEST_SURNAME");
         user.setBirthDate(LocalDate.now().minusDays(1));
         user.setEmail("TEST@EMAIL");
         return user;
-    }
-
-    private record PagedResponse<T>(
-            java.util.List<T> content,
-            int totalPages,
-            long totalElements,
-            int size,
-            int number
-    ) {
-    }
-
-    private static class URI {
-        private static final String CARD_CREATE = "/api/v1/cards";
-        private static final String GET_CARD_BY_ID = "/api/v1/cards/{id}";
-        private static final String CARD_GET_ALL = "/api/v1/cards";
-        private static final String CARD_DELETE = "/api/v1/cards/{id}";
     }
 }
