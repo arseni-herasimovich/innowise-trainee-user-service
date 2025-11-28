@@ -11,3 +11,10 @@ spring:
     open-in-view: false
   cache:
     type: redis
+  autoconfigure:
+    exclude:
+      - net.devh.boot.grpc.server.autoconfigure.GrpcServerSecurityAutoConfiguration
+eureka:
+  instance:
+    metadata-map:
+      grpc.port: 9090
