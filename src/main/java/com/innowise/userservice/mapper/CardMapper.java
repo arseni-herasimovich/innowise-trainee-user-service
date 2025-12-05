@@ -12,6 +12,7 @@ public interface CardMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "user", ignore = true)
     Card toEntity(CardCreateRequest request);
-    @Mapping(target = "userId", source = "user.id")
+
+    @Mapping(target = "userId", source = "user.userId")
     CardResponse toResponse(Card card);
 }

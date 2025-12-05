@@ -16,8 +16,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.UUID;
-
 @RestController
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
@@ -33,9 +31,9 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or #id.toString() == authentication.principal")
-    public ResponseEntity<ApiResponse<UserResponse>> getById(@PathVariable("id") UUID id) {
-        return ResponseEntity.ok(ApiResponse.success("User successfully found", userService.getById(id)));
+    @PreAuthorize("hasRole('ADMIN') or #userId.toString().equals(authentication.principal)")
+    public ResponseEntity<ApiResponse<UserResponse>> getById(@PathVariable("id") String userId) {
+        return ResponseEntity.ok(ApiResponse.success("User successfully found", userService.getByUserId(userId)));
     }
 
     @GetMapping
@@ -58,19 +56,19 @@ public class UserController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or #id.toString() == authentication.principal")
-    public ResponseEntity<ApiResponse<Void>> update(@PathVariable("id") UUID id,
+    @PreAuthorize("hasRole('ADMIN') or #userId.toString().equals(authentication.principal)")
+    public ResponseEntity<ApiResponse<Void>> update(@PathVariable("id") String userId,
                                                     @RequestBody @Valid UserUpdateRequest request) {
-        userService.update(id, request);
+        userService.update(userId, request);
         return ResponseEntity.ok(
                 ApiResponse.success("User successfully updated")
         );
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or #id.toString() == authentication.principal")
-    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable("id") UUID id) {
-        userService.delete(id);
+    @PreAuthorize("hasRole('ADMIN') or #userId.toString().equals(authentication.principal)")
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable("id") String userId) {
+        userService.delete(userId);
         return ResponseEntity.ok(
                 ApiResponse.success("User successfully deleted")
         );

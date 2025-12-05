@@ -19,8 +19,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.UUID;
-
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
@@ -31,7 +29,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Caching(put = {
-            @CachePut(value = USER_CACHE, key = "#result.id()"),
+            @CachePut(value = USER_CACHE, key = "#result.userId()"),
             @CachePut(value = USER_CACHE, key = "#result.email()")
     })
     public UserResponse create(UserCreateRequest request) {
@@ -39,8 +37,8 @@ public class UserServiceImpl implements UserService {
             throw new UserAlreadyExistsException(request.email());
         }
 
-        if (userRepository.existsById(request.id())) {
-            throw new UserAlreadyExistsException(request.id());
+        if (userRepository.existsByUserId(request.userId())) {
+            throw new UserAlreadyExistsException(request.userId());
         }
 
         return userMapper.toResponse(
@@ -50,10 +48,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(readOnly = true)
-    public UserResponse getById(UUID id) {
-        var userResponse = userRepository.findUserById(id)
+    public UserResponse getByUserId(String userId) {
+        var userResponse = userRepository.findUserByUserId(userId)
                 .map(userMapper::toResponse)
-                .orElseThrow(() -> new UserNotFoundException(id));
+                .orElseThrow(() -> new UserNotFoundException(userId));
 
         cacheById(userResponse);
         cacheByEmail(userResponse);
@@ -86,8 +84,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public void update(UUID id, UserUpdateRequest request) {
-        userRepository.findUserById(id)
+    public void update(String userId, UserUpdateRequest request) {
+        userRepository.findUserByUserId(userId)
                 .ifPresentOrElse(
                         user -> {
                             if (userRepository.existsByEmail(request.email()) &&
@@ -100,41 +98,41 @@ public class UserServiceImpl implements UserService {
                             evictUserCache(user);
                         },
                         () -> {
-                            throw new UserNotFoundException(id);
+                            throw new UserNotFoundException(userId);
                         }
                 );
     }
 
     @Override
     @Transactional
-    public void delete(UUID id) {
-        userRepository.findUserById(id)
+    public void delete(String userId) {
+        userRepository.findUserByUserId(userId)
                 .ifPresentOrElse(
                         user -> {
-                            userRepository.delete(id);
+                            userRepository.deleteByUserId(userId);
                             evictUserCache(user);
                         },
                         () -> {
-                            throw new UserNotFoundException(id);
+                            throw new UserNotFoundException(userId);
                         }
                 );
     }
 
     @Override
-    public User getEntityById(UUID id) {
-        return userRepository.findUserById(id)
-                .orElseThrow(() -> new UserNotFoundException(id));
+    public User getEntityByUserId(String userId) {
+        return userRepository.findUserByUserId(userId)
+                .orElseThrow(() -> new UserNotFoundException(userId));
     }
 
     @Override
     public void evictUserCache(User user) {
-        evictUserCache(user.getId(), user.getEmail());
+        evictUserCache(user.getUserId(), user.getEmail());
     }
 
-    private void evictUserCache(UUID id, String email) {
+    private void evictUserCache(String userId, String email) {
         var cache = cacheManager.getCache(USER_CACHE);
         if (cache != null) {
-            cache.evict(id);
+            cache.evict(userId);
             cache.evict(email);
         }
     }
@@ -142,7 +140,7 @@ public class UserServiceImpl implements UserService {
     private void cacheById(UserResponse user) {
         var cache = cacheManager.getCache(USER_CACHE);
         if (cache != null) {
-            cache.put(user.id(), user);
+            cache.put(user.userId(), user);
         }
     }
 

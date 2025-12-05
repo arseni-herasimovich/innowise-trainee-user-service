@@ -10,6 +10,7 @@ import com.innowise.userservice.service.CardService;
 import com.innowise.userservice.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,7 +30,7 @@ public class CardServiceImpl implements CardService {
             throw new CardNumberAlreadyExistsException(request.number());
         }
 
-        var user = userService.getEntityById(request.userId());
+        var user = userService.getEntityByUserId(request.userId());
         var card = cardMapper.toEntity(request);
         card.setUser(user);
         cardRepository.save(card);
@@ -46,7 +47,12 @@ public class CardServiceImpl implements CardService {
 
     @Override
     public Page<CardResponse> getAllPaged(Pageable pageable) {
-        return cardRepository.findAll(pageable).map(cardMapper::toResponse);
+        var ids = cardRepository.findCardIds(pageable);
+        var cards = cardRepository.findAllWithUsersByIds(ids.getContent())
+                .stream()
+                .map(cardMapper::toResponse)
+                .toList();
+        return new PageImpl<>(cards, pageable, ids.getTotalElements());
     }
 
     @Override

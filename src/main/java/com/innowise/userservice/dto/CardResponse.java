@@ -5,7 +5,7 @@ import java.util.UUID;
 
 public record CardResponse(
         UUID id,
-        UUID userId,
+        String userId,
         String number,
         String holder,
         LocalDate expirationDate

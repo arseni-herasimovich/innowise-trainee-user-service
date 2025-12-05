@@ -11,3 +11,5 @@ databaseChangeLog:
       file: db/changelog/updates/2025-10-31-add-constraints-users-table.yaml
   - include:
       file: db/changelog/updates/2025-10-31-change-column-type-to-date-card-info-table.yaml
+  - include:
+      file: db/changelog/updates/2025-12-04-add-user-id-column-users-table.yaml

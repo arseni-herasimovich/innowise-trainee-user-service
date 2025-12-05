@@ -34,8 +34,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     // redundant methods only to follow the task requirements
 
-    @Query("from User u where u.id = :id")
-    Optional<User> findUserById(UUID id);
+    @Query("from User u where u.userId = :userId")
+    Optional<User> findUserByUserId(String userId);
 
     @Modifying
     @Query("""
@@ -51,4 +51,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
             WHERE id = :id
             """, nativeQuery = true)
     void delete(UUID id);
+
+    boolean existsByUserId(String userId);
+
+    void deleteByUserId(String userId);
 }

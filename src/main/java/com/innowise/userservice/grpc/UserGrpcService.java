@@ -20,16 +20,16 @@ public class UserGrpcService extends UserServiceGrpc.UserServiceImplBase {
 
     @Override
     public void createUser(User.UserCreateRequest request, StreamObserver<User.UserResponse> responseObserver) {
-        log.debug("Received request to create user with id: {}", request.getId());
+        log.debug("Received request to create user with id: {}", request.getUserId());
         try {
             var response = userService.create(
                     userGrpcMapper.toRequest(request)
             );
-            log.debug("User with id {} created successfully", response.id());
+            log.debug("User with id {} created successfully", response.userId());
             responseObserver.onNext(userGrpcMapper.toResponse(response));
             responseObserver.onCompleted();
         } catch (UserAlreadyExistsException e) {
-            log.debug("User with id {} already exists", request.getId());
+            log.debug("User with id {} already exists", request.getUserId());
             var status = Status.ALREADY_EXISTS.withDescription(e.getMessage()).asRuntimeException();
             responseObserver.onError(status);
         }

@@ -51,7 +51,7 @@ class UserControllerTest extends AbstractIntegrationTest {
         void givenValidRequest_whenCreate_thenSavesToDatabaseAndResponses() throws Exception {
             // Given
             var request = new UserCreateRequest(
-                    UUID.randomUUID(),
+                    UUID.randomUUID().toString(),
                     "TEST_NAME",
                     "TEST_SURNAME",
                     LocalDate.now().minusDays(1),
@@ -66,15 +66,17 @@ class UserControllerTest extends AbstractIntegrationTest {
                     .andExpectAll(
                             jsonPath("$.success", is(true)),
                             jsonPath("$.data.email", is(request.email())),
-                            jsonPath("$.data.id").exists()
+                            jsonPath("$.data.userId", is(request.userId()))
                     );
 
-            var user = userRepository.findUserById(request.id());
+            var user = userRepository.findUserByEmail(request.email());
             assertTrue(user.isPresent());
+            assertNotNull(user.get().getId());
             assertEquals(request.name(), user.get().getName());
             assertEquals(request.surname(), user.get().getSurname());
             assertEquals(request.birthDate(), user.get().getBirthDate());
             assertEquals(request.email(), user.get().getEmail());
+            assertEquals(request.userId(), user.get().getUserId());
         }
 
         @Test
@@ -86,7 +88,7 @@ class UserControllerTest extends AbstractIntegrationTest {
             userRepository.save(newUser);
 
             var request = new UserCreateRequest(
-                    UUID.randomUUID(),
+                    UUID.randomUUID().toString(),
                     "TEST_NAME",
                     "TEST_SURNAME",
                     LocalDate.now().minusDays(1),
@@ -108,14 +110,14 @@ class UserControllerTest extends AbstractIntegrationTest {
 
         @Test
         @WithMockUser(roles = "ADMIN")
-        @DisplayName("Should return conflict when creating user with existing id")
-        void givenExistingId_whenCreate_thenReturnsConflict() throws Exception {
+        @DisplayName("Should return conflict when creating user with existing user ID")
+        void givenExistingUserId_whenCreate_thenReturnsConflict() throws Exception {
             // Given
             var newUser = createTestUser();
             userRepository.save(newUser);
 
             var request = new UserCreateRequest(
-                    newUser.getId(),
+                    newUser.getUserId(),
                     "TEST_NAME",
                     "TEST_SURNAME",
                     LocalDate.now().minusDays(1),
@@ -166,7 +168,7 @@ class UserControllerTest extends AbstractIntegrationTest {
         void givenCorruptedEmail_whenCreate_thenReturnsBadRequest() throws Exception {
             // Given
             var request = new UserCreateRequest(
-                    UUID.randomUUID(),
+                    UUID.randomUUID().toString(),
                     "TEST_NAME",
                     "TEST_SURNAME",
                     LocalDate.now().minusDays(1),
@@ -194,13 +196,13 @@ class UserControllerTest extends AbstractIntegrationTest {
         void givenExistingId_whenGetById_thenReturnsUserResponse() throws Exception {
             // Given
             var newUser = createTestUser();
-            var id = userRepository.save(newUser).getId();
+            var id = userRepository.save(newUser).getUserId();
 
-            // When, Then
+            // When, Then..,
             mockMvc.perform(get("/api/v1/users/{id}", id))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.success", is(true)))
-                    .andExpect(jsonPath("$.data.id", is(id.toString())))
+                    .andExpect(jsonPath("$.data.userId", is(id)))
                     .andExpect(jsonPath("$.data.name", is(newUser.getName())))
                     .andExpect(jsonPath("$.data.email", is(newUser.getEmail())))
                     .andExpect(jsonPath("$.data.birthDate", is(newUser.getBirthDate().toString())))
@@ -322,7 +324,7 @@ class UserControllerTest extends AbstractIntegrationTest {
         void givenExistingUserWithoutChangingEmail_whenUpdate_thenUpdatesUser() throws Exception {
             // Given
             var newUser = createTestUser();
-            var id = userRepository.save(newUser).getId();
+            var id = userRepository.save(newUser).getUserId();
 
             var request = new UserUpdateRequest(
                     "TEST_NAME",
@@ -339,7 +341,7 @@ class UserControllerTest extends AbstractIntegrationTest {
                     .andExpect(jsonPath("$.success", is(true)))
                     .andExpect(jsonPath("$.data").doesNotExist());
 
-            var user = userRepository.findUserById(id).orElseThrow();
+            var user = userRepository.findUserByUserId(id).orElseThrow();
 
             assertEquals(request.name(), user.getName());
             assertEquals(request.surname(), user.getSurname());
@@ -353,7 +355,7 @@ class UserControllerTest extends AbstractIntegrationTest {
         void givenExistingUserWithChangingEmailAndEmailNotExists_whenUpdate_thenUpdatesUser() throws Exception {
             // Given
             var newUser = createTestUser();
-            var id = userRepository.save(newUser).getId();
+            var id = userRepository.save(newUser).getUserId();
 
             var request = new UserUpdateRequest(
                     "TEST_NAME",
@@ -370,7 +372,7 @@ class UserControllerTest extends AbstractIntegrationTest {
                     .andExpect(jsonPath("$.success", is(true)))
                     .andExpect(jsonPath("$.data").doesNotExist());
 
-            var user = userRepository.findUserById(id).orElseThrow();
+            var user = userRepository.findUserByUserId(id).orElseThrow();
 
             assertEquals(request.name(), user.getName());
             assertEquals(request.surname(), user.getSurname());
@@ -387,7 +389,7 @@ class UserControllerTest extends AbstractIntegrationTest {
             userRepository.save(existingUser);
 
             var newUser = createTestUser();
-            var id = userRepository.save(newUser).getId();
+            var id = userRepository.save(newUser).getUserId();
 
             var request = new UserUpdateRequest(
                     "NEW_NAME",
@@ -404,7 +406,7 @@ class UserControllerTest extends AbstractIntegrationTest {
                     .andExpect(jsonPath("$.success", is(false)))
                     .andExpect(jsonPath("$.data").doesNotExist());
 
-            var user = userRepository.findUserById(id).orElseThrow();
+            var user = userRepository.findUserByUserId(id).orElseThrow();
 
             assertNotEquals(request.name(), user.getName());
             assertNotEquals(request.surname(), user.getSurname());
@@ -446,7 +448,7 @@ class UserControllerTest extends AbstractIntegrationTest {
         void givenExistingUser_whenDelete_thenDeletesUser() throws Exception {
             // Given
             var newUser = createTestUser();
-            var id = userRepository.save(newUser).getId();
+            var id = userRepository.save(newUser).getUserId();
 
             // When, Then
             mockMvc.perform(delete("/api/v1/users/{id}", id))
@@ -454,7 +456,7 @@ class UserControllerTest extends AbstractIntegrationTest {
                     .andExpect(jsonPath("$.success", is(true)))
                     .andExpect(jsonPath("$.data").doesNotExist());
 
-            assertFalse(userRepository.existsById(id));
+            assertFalse(userRepository.existsByUserId(id));
         }
 
         @Test
@@ -464,7 +466,7 @@ class UserControllerTest extends AbstractIntegrationTest {
             // Given
             var newUser = createTestUser();
             var newUserId = userRepository.save(newUser).getId();
-            var id = UUID.randomUUID();
+            var id = UUID.randomUUID().toString();
 
             // When, Then
             mockMvc.perform(delete("/api/v1/users/{id}", id))
@@ -478,21 +480,21 @@ class UserControllerTest extends AbstractIntegrationTest {
 
     private User createTestUser() {
         User user = new User();
-        user.setId(UUID.randomUUID());
         user.setName("TEST_NAME");
         user.setSurname("TEST_SURNAME");
         user.setBirthDate(LocalDate.now().minusDays(1));
         user.setEmail("TEST@EMAIL");
+        user.setUserId(UUID.randomUUID().toString());
         return user;
     }
 
     private User createUniqueUser(int i) {
         User user = new User();
-        user.setId(UUID.randomUUID());
         user.setName("TEST_NAME" + i);
         user.setSurname("TEST_SURNAME" + i);
         user.setBirthDate(LocalDate.now().minusDays(1));
         user.setEmail("TEST@EMAIL" + i);
+        user.setUserId(UUID.randomUUID().toString());
         return user;
     }
 }
