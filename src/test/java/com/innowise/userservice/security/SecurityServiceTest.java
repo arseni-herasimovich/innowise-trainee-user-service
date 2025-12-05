@@ -40,7 +40,7 @@ class SecurityServiceTest {
             var request = getUserCreateRequest();
 
             // When
-            var result = securityService.canCreateUser(request.id().toString(), request);
+            var result = securityService.canCreateUser(request.userId(), request);
 
             // Then
             assertTrue(result);
@@ -85,7 +85,7 @@ class SecurityServiceTest {
             var request = getCardCreateRequest();
 
             // When
-            var result = securityService.canCreateCard(request.userId().toString(), request);
+            var result = securityService.canCreateCard(request.userId(), request);
 
             // Then
             assertTrue(result);
@@ -127,11 +127,11 @@ class SecurityServiceTest {
         @DisplayName("Should access card only with the principal's user id")
         void givenRightId_whenCanAccessCard_thenReturnTrue() {
             // Given
-            var userId = UUID.randomUUID();
+            var userId = UUID.randomUUID().toString();
             var cardId = UUID.randomUUID();
             var card = new Card(
                     cardId,
-                    getUserWithId(userId),
+                    getUserWithUserId(userId),
                     "TEST_NUMBER",
                     "TEST_HOLDER",
                     LocalDate.now().plusDays(1)
@@ -139,7 +139,7 @@ class SecurityServiceTest {
 
             // When
             when(cardRepository.findCardById(cardId)).thenReturn(Optional.of(card));
-            var result = securityService.canAccessCard(userId.toString(), cardId);
+            var result = securityService.canAccessCard(userId, cardId);
 
             // Then
             assertTrue(result);
@@ -149,10 +149,10 @@ class SecurityServiceTest {
         @DisplayName("Should throw exception when principal's user id and card's user id differ")
         void givenDifferentId_whenCanAccessCard_thenThrowsException() {
             // Given
-            var userId = UUID.randomUUID();
+            var userId = UUID.randomUUID().toString();
             var card = new Card(
                     UUID.randomUUID(),
-                    getUserWithId(userId),
+                    getUserWithUserId(userId),
                     "TEST_NUMBER",
                     "TEST_HOLDER",
                     LocalDate.now().plusDays(1)
@@ -182,7 +182,7 @@ class SecurityServiceTest {
 
     private UserCreateRequest getUserCreateRequest() {
         return new UserCreateRequest(
-                UUID.randomUUID(),
+                UUID.randomUUID().toString(),
                 "TEST_NAME",
                 "TEST_SURNAME",
                 LocalDate.now().minusDays(1),
@@ -192,16 +192,17 @@ class SecurityServiceTest {
 
     private CardCreateRequest getCardCreateRequest() {
         return new CardCreateRequest(
-                UUID.randomUUID(),
+                UUID.randomUUID().toString(),
                 "TEST_NUMBER",
                 "TEST_HOLDER",
                 LocalDate.now().plusDays(1)
         );
     }
 
-    private User getUserWithId(UUID id) {
+    private User getUserWithUserId(String userId) {
         return new User(
-                id,
+                UUID.randomUUID(),
+                userId,
                 "TEST_NAME",
                 "TEST_SURNAME",
                 LocalDate.now().minusDays(1),

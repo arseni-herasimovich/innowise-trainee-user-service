@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: add-user-id-column-users-table
+      author: arseni-herasimovich
+      changes:
+        - addColumn:
+            tableName: users
+            columns:
+              - column:
+                  name: user_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+                    unique: true

@@ -15,7 +15,7 @@ public interface UserGrpcMapper {
 
     default User.UserResponse toResponse(UserResponse response) {
         return User.UserResponse.newBuilder()
-                .setId(response.id().toString())
+                .setUserId(response.userId())
                 .setName(response.name())
                 .setSurname(response.surname())
                 .setBirthDate(response.birthDate().toString())

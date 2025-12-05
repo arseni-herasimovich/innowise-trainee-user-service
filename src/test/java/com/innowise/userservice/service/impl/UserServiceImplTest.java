@@ -54,12 +54,13 @@ class UserServiceImplTest {
         @DisplayName("Should create user and return response when valid data provided")
         void givenValidData_whenCreate_thenSavesUserAndReturnsResponse() {
             //Given
-            var request = createUserCreateRequest("TEST@EMAIL");
+            var request = createUserCreateRequest();
             var user = createUser(request.name(), request.surname(), request.birthDate(), request.email());
             var response = createUserResponse(user);
 
             //When
             when(userRepository.existsByEmail(request.email())).thenReturn(false);
+            when(userRepository.existsByUserId(request.userId())).thenReturn(false);
             when(userMapper.toEntity(request)).thenReturn(user);
             when(userRepository.save(user)).thenReturn(user);
             when(userMapper.toResponse(user)).thenReturn(response);
@@ -70,6 +71,7 @@ class UserServiceImplTest {
             assertEquals(response, serviceResponse);
 
             verify(userRepository, times(1)).existsByEmail(request.email());
+            verify(userRepository, times(1)).existsByUserId(request.userId());
             verify(userMapper, times(1)).toEntity(request);
             verify(userMapper, times(1)).toResponse(user);
             verify(userRepository, times(1)).save(user);
@@ -79,7 +81,7 @@ class UserServiceImplTest {
         @DisplayName("Should throw UserAlreadyExistsException when creating a user with existing email")
         void givenExistingEmail_whenCreate_thenThrowsException() {
             // Given
-            var request = createUserCreateRequest("TEST@EMAIL");
+            var request = createUserCreateRequest();
 
             // When
             when(userRepository.existsByEmail(request.email())).thenReturn(true);
@@ -88,27 +90,27 @@ class UserServiceImplTest {
             assertThrows(UserAlreadyExistsException.class, () -> userService.create(request));
 
             verify(userRepository, times(1)).existsByEmail(request.email());
-            verify(userRepository, never()).existsById(any());
+            verify(userRepository, never()).existsByUserId(any());
             verify(userMapper, never()).toEntity(any());
             verify(userMapper, never()).toResponse(any());
             verify(userRepository, never()).save(any());
         }
 
         @Test
-        @DisplayName("Should throw UserAlreadyExistsException when creating a user with existing id")
-        void givenExistingId_whenCreate_thenThrowsException() {
+        @DisplayName("Should throw UserAlreadyExistsException when creating a user with existing user id")
+        void givenExistingUserId_whenCreate_thenThrowsException() {
             // Given
-            var request = createUserCreateRequest("TEST@EMAIL");
+            var request = createUserCreateRequest();
 
             // When
             when(userRepository.existsByEmail(request.email())).thenReturn(false);
-            when(userRepository.existsById(request.id())).thenReturn(true);
+            when(userRepository.existsByUserId(request.userId())).thenReturn(true);
 
             // Then
             assertThrows(UserAlreadyExistsException.class, () -> userService.create(request));
 
             verify(userRepository, times(1)).existsByEmail(request.email());
-            verify(userRepository, times(1)).existsById(request.id());
+            verify(userRepository, times(1)).existsByUserId(any());
             verify(userMapper, never()).toEntity(any());
             verify(userMapper, never()).toResponse(any());
             verify(userRepository, never()).save(any());
@@ -116,25 +118,25 @@ class UserServiceImplTest {
     }
 
     @Nested
-    @DisplayName("Get user by id")
-    class GetByIdTests {
+    @DisplayName("Get user by user ID")
+    class GetByUserIdTests {
         @Test
-        @DisplayName("Should return user response when getting existing user by id")
-        void givenExistingUser_whenGetById_thenReturnsUserResponse() {
+        @DisplayName("Should return user response when getting existing user by user ID")
+        void givenExistingUser_whenGetByUserId_thenReturnsUserResponse() {
             // Given
             var user = createUser("TEST_NAME", "TEST_SURNAME", LocalDate.now(), "TEST@EMAIL");
             var response = createUserResponse(user);
 
             // When
-            when(userRepository.findUserById(user.getId())).thenReturn(Optional.of(user));
+            when(userRepository.findUserByUserId(user.getUserId())).thenReturn(Optional.of(user));
             when(userMapper.toResponse(user)).thenReturn(response);
 
-            var serviceResponse = userService.getById(user.getId());
+            var serviceResponse = userService.getByUserId(user.getUserId());
 
             // Then
             assertEquals(response, serviceResponse);
 
-            verify(userRepository, times(1)).findUserById(user.getId());
+            verify(userRepository, times(1)).findUserByUserId(user.getUserId());
             verify(userMapper, times(1)).toResponse(user);
         }
 
@@ -142,15 +144,15 @@ class UserServiceImplTest {
         @DisplayName("Should throw UserNotFoundException when getting non-existing user by ID")
         void givenNonExistingUser_whenGetById_thenThrowsUserNotFoundException() {
             // Given
-            var userId = UUID.randomUUID();
+            var userId = UUID.randomUUID().toString();
 
             // When
-            when(userRepository.findUserById(userId)).thenReturn(Optional.empty());
+            when(userRepository.findUserByUserId(userId)).thenReturn(Optional.empty());
 
             // Then
-            assertThrows(UserNotFoundException.class, () -> userService.getById(userId));
+            assertThrows(UserNotFoundException.class, () -> userService.getByUserId(userId));
 
-            verify(userRepository, times(1)).findUserById(userId);
+            verify(userRepository, times(1)).findUserByUserId(userId);
             verify(userMapper, never()).toResponse(any());
         }
 
@@ -162,15 +164,15 @@ class UserServiceImplTest {
             var response = createUserResponse(user);
 
             // When
-            when(userRepository.findUserById(user.getId())).thenReturn(Optional.of(user));
+            when(userRepository.findUserByUserId(user.getUserId())).thenReturn(Optional.of(user));
             when(userMapper.toResponse(user)).thenReturn(response);
             when(cacheManager.getCache(UserServiceImpl.USER_CACHE)).thenReturn(cache);
 
-            userService.getById(user.getId());
+            userService.getByUserId(user.getUserId());
 
             // Then
             verify(cacheManager, times(2)).getCache(UserServiceImpl.USER_CACHE);
-            verify(cache, times(1)).put(user.getId(), response);
+            verify(cache, times(1)).put(user.getUserId(), response);
             verify(cache, times(1)).put(user.getEmail(), response);
         }
     }
@@ -230,7 +232,7 @@ class UserServiceImplTest {
 
             // Then
             verify(cacheManager, times(2)).getCache(UserServiceImpl.USER_CACHE);
-            verify(cache, times(1)).put(user.getId(), response);
+            verify(cache, times(1)).put(user.getUserId(), response);
             verify(cache, times(1)).put(user.getEmail(), response);
         }
     }
@@ -296,13 +298,13 @@ class UserServiceImplTest {
             var request = createUserUpdateRequest(user.getEmail());
 
             // When
-            when(userRepository.findUserById(user.getId())).thenReturn(Optional.of(user));
+            when(userRepository.findUserByUserId(user.getUserId())).thenReturn(Optional.of(user));
             when(userRepository.existsByEmail(request.email())).thenReturn(true);
 
-            userService.update(user.getId(), request);
+            userService.update(user.getUserId(), request);
 
             // Then
-            verify(userRepository, times(1)).findUserById(user.getId());
+            verify(userRepository, times(1)).findUserByUserId(user.getUserId());
             verify(userRepository, times(1)).existsByEmail(request.email());
             verify(userMapper, times(1)).update(request, user);
             verify(userRepository, times(1)).update(
@@ -322,13 +324,13 @@ class UserServiceImplTest {
             var request = createUserUpdateRequest("NEW_EMAIL");
 
             // When
-            when(userRepository.findUserById(user.getId())).thenReturn(Optional.of(user));
+            when(userRepository.findUserByUserId(user.getUserId())).thenReturn(Optional.of(user));
             when(userRepository.existsByEmail(request.email())).thenReturn(false);
 
-            userService.update(user.getId(), request);
+            userService.update(user.getUserId(), request);
 
             // Then
-            verify(userRepository, times(1)).findUserById(user.getId());
+            verify(userRepository, times(1)).findUserByUserId(user.getUserId());
             verify(userRepository, times(1)).existsByEmail(request.email());
             verify(userMapper, times(1)).update(request, user);
             verify(userRepository, times(1)).update(
@@ -348,13 +350,13 @@ class UserServiceImplTest {
             var request = createUserUpdateRequest("NEW_EMAIL");
 
             // When
-            when(userRepository.findUserById(user.getId())).thenReturn(Optional.of(user));
+            when(userRepository.findUserByUserId(user.getUserId())).thenReturn(Optional.of(user));
             when(userRepository.existsByEmail(request.email())).thenReturn(true);
 
-            assertThrows(UserAlreadyExistsException.class, () -> userService.update(user.getId(), request));
+            assertThrows(UserAlreadyExistsException.class, () -> userService.update(user.getUserId(), request));
 
             // Then
-            verify(userRepository, times(1)).findUserById(user.getId());
+            verify(userRepository, times(1)).findUserByUserId(user.getUserId());
             verify(userRepository, times(1)).existsByEmail(request.email());
             verify(userMapper, never()).update(any(), any());
             verify(userRepository, never()).update(any(), any(), any(), any(), any());
@@ -364,16 +366,16 @@ class UserServiceImplTest {
         @DisplayName("Should throw UserNotFoundException when updating non-existing user")
         void givenNonExistingUser_whenUpdate_thenThrowsUserNotFoundException() {
             // Given
-            var userId = UUID.randomUUID();
+            var userId = UUID.randomUUID().toString();
             var request = createUserUpdateRequest("TEST@EMAIL");
 
             // When
-            when(userRepository.findUserById(userId)).thenReturn(Optional.empty());
+            when(userRepository.findUserByUserId(userId)).thenReturn(Optional.empty());
 
             // Then
             assertThrows(UserNotFoundException.class, () -> userService.update(userId, request));
 
-            verify(userRepository, times(1)).findUserById(userId);
+            verify(userRepository, times(1)).findUserByUserId(userId);
             verify(userRepository, never()).existsByEmail(any());
             verify(userMapper, never()).update(any(), any());
             verify(userRepository, never()).update(any(), any(), any(), any(), any());
@@ -390,28 +392,28 @@ class UserServiceImplTest {
             var user = createUser("TEST_NAME", "TEST_SURNAME", LocalDate.now(), "test@test.com");
 
             // When
-            when(userRepository.findUserById(user.getId())).thenReturn(Optional.of(user));
+            when(userRepository.findUserByUserId(user.getUserId())).thenReturn(Optional.of(user));
 
-            userService.delete(user.getId());
+            userService.delete(user.getUserId());
 
             // Then
-            verify(userRepository, times(1)).findUserById(user.getId());
-            verify(userRepository, times(1)).delete(user.getId());
+            verify(userRepository, times(1)).findUserByUserId(user.getUserId());
+            verify(userRepository, times(1)).deleteByUserId(user.getUserId());
         }
 
         @Test
         @DisplayName("Should throw UserNotFoundException when deleting non-existing user")
         void givenNonExistingUser_whenDelete_thenThrowsUserNotFoundException() {
             // Given
-            var userId = UUID.randomUUID();
+            var userId = UUID.randomUUID().toString();
 
             // When
-            when(userRepository.findUserById(userId)).thenReturn(Optional.empty());
+            when(userRepository.findUserByUserId(userId)).thenReturn(Optional.empty());
 
             // Then
             assertThrows(UserNotFoundException.class, () -> userService.delete(userId));
 
-            verify(userRepository, times(1)).findUserById(userId);
+            verify(userRepository, times(1)).findUserByUserId(userId);
             verify(userRepository, never()).delete(any(UUID.class));
         }
 
@@ -422,16 +424,16 @@ class UserServiceImplTest {
             var user = createUser("TEST_NAME", "TEST_SURNAME", LocalDate.now(), "TEST@EMAIL");
 
             // When
-            when(userRepository.findUserById(user.getId())).thenReturn(Optional.of(user));
+            when(userRepository.findUserByUserId(user.getUserId())).thenReturn(Optional.of(user));
             when(cacheManager.getCache(UserServiceImpl.USER_CACHE)).thenReturn(cache);
 
-            userService.delete(user.getId());
+            userService.delete(user.getUserId());
 
             // Then
             verify(cacheManager, times(1)).getCache(UserServiceImpl.USER_CACHE);
-            verify(cache, times(1)).evict(user.getId());
+            verify(cache, times(1)).evict(user.getUserId());
             verify(cache, times(1)).evict(user.getEmail());
-            verify(userRepository, times(1)).delete(user.getId());
+            verify(userRepository, times(1)).deleteByUserId(user.getUserId());
         }
     }
 
@@ -439,45 +441,45 @@ class UserServiceImplTest {
     @DisplayName("Get entity by id")
     class GetEntityByIdTests {
         @Test
-        @DisplayName("Should return user entity when getting existing user by ID")
+        @DisplayName("Should return user entity when getting existing user by userId")
         void givenExistingUser_whenGetEntityById_thenReturnsUser() {
             // Given
             var user = createUser("TEST_NAME", "TEST_SURNAME", LocalDate.now(), "TEST@EMAIL");
 
             // When
-            when(userRepository.findUserById(user.getId())).thenReturn(Optional.of(user));
+            when(userRepository.findUserByUserId(user.getUserId())).thenReturn(Optional.of(user));
 
-            var result = userService.getEntityById(user.getId());
+            var result = userService.getEntityByUserId(user.getUserId());
 
             // Then
             assertEquals(user, result);
 
-            verify(userRepository, times(1)).findUserById(user.getId());
+            verify(userRepository, times(1)).findUserByUserId(user.getUserId());
         }
 
         @Test
-        @DisplayName("Should throw UserNotFoundException when getting non-existing user entity by ID")
+        @DisplayName("Should throw UserNotFoundException when getting non-existing user entity by userID")
         void givenNonExistingUser_whenGetEntityById_thenThrowsUserNotFoundException() {
             // Given
-            var userId = UUID.randomUUID();
+            var userId = UUID.randomUUID().toString();
 
             // When
-            when(userRepository.findUserById(userId)).thenReturn(Optional.empty());
+            when(userRepository.findUserByUserId(userId)).thenReturn(Optional.empty());
 
             // Then
-            assertThrows(UserNotFoundException.class, () -> userService.getEntityById(userId));
+            assertThrows(UserNotFoundException.class, () -> userService.getEntityByUserId(userId));
 
-            verify(userRepository, times(1)).findUserById(userId);
+            verify(userRepository, times(1)).findUserByUserId(userId);
         }
     }
 
-    private UserCreateRequest createUserCreateRequest(String email) {
+    private UserCreateRequest createUserCreateRequest() {
         return new UserCreateRequest(
-                UUID.randomUUID(),
+                UUID.randomUUID().toString(),
                 "TEST_NAME",
                 "TEST_SURNAME",
                 LocalDate.now(),
-                email
+                "TEST@EMAIL"
         );
     }
 
@@ -493,6 +495,7 @@ class UserServiceImplTest {
     private User createUser(String name, String surname, LocalDate birthDate, String email) {
         return new User(
                 UUID.randomUUID(),
+                UUID.randomUUID().toString(),
                 name,
                 surname,
                 birthDate,
@@ -503,7 +506,7 @@ class UserServiceImplTest {
 
     private UserResponse createUserResponse(User user) {
         return new UserResponse(
-                user.getId(),
+                user.getUserId(),
                 user.getName(),
                 user.getSurname(),
                 user.getBirthDate(),

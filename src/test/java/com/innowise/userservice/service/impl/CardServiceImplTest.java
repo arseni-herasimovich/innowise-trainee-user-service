@@ -54,11 +54,11 @@ class CardServiceImplTest {
             var request = createCardCreateRequest();
             var user = createUser(request.userId());
             var card = createCard(request.number(), request.holder(), request.expirationDate());
-            var response = createCardResponse(card, user.getId());
+            var response = createCardResponse(card, user.getUserId());
 
             // When
             when(cardRepository.existsByNumber(request.number())).thenReturn(false);
-            when(userService.getEntityById(request.userId())).thenReturn(user);
+            when(userService.getEntityByUserId(request.userId())).thenReturn(user);
             when(cardMapper.toEntity(any(CardCreateRequest.class))).thenReturn(card);
             when(cardRepository.save(any(Card.class))).thenReturn(card);
             when(cardMapper.toResponse(any(Card.class))).thenReturn(response);
@@ -96,7 +96,7 @@ class CardServiceImplTest {
 
             // When
             when(cardRepository.existsByNumber(request.number())).thenReturn(false);
-            when(userService.getEntityById(request.userId())).thenThrow(new UserNotFoundException(request.userId()));
+            when(userService.getEntityByUserId(request.userId())).thenThrow(new UserNotFoundException(request.userId()));
 
             // Then
             assertThrows(UserNotFoundException.class, () -> cardService.create(request));
@@ -114,7 +114,7 @@ class CardServiceImplTest {
         void givenExistingCard_whenGetById_thenReturnsCardResponse() {
             // Given
             var card = createCard("TEST_NUMBER", "TEST_HOLDER", LocalDate.now().plusDays(1));
-            var response = createCardResponse(card, UUID.randomUUID());
+            var response = createCardResponse(card, UUID.randomUUID().toString());
 
             // When
             when(cardRepository.findCardById(card.getId())).thenReturn(Optional.of(card));
@@ -156,13 +156,14 @@ class CardServiceImplTest {
             // Given
             var card = createCard("TEST_NUMBER", "TEST_HOLDER",
                     LocalDate.now().plusDays(1));
-            var response = createCardResponse(card, UUID.randomUUID());
+            var response = createCardResponse(card, UUID.randomUUID().toString());
             var pageable = PageRequest.of(0, 10);
-            var page = new PageImpl<>(List.of(card), pageable, 1);
+            var ids = new PageImpl<>(List.of(card.getId()), pageable, 1);
 
             // When
-            when(cardRepository.findAll(pageable)).thenReturn(page);
-            when(cardMapper.toResponse(any(Card.class))).thenReturn(response);
+            when(cardRepository.findCardIds(pageable)).thenReturn(ids);
+            when(cardRepository.findAllWithUsersByIds(ids.getContent())).thenReturn(List.of(card));
+            when(cardMapper.toResponse(card)).thenReturn(response);
 
             var serviceResponse = cardService.getAllPaged(pageable);
 
@@ -170,7 +171,8 @@ class CardServiceImplTest {
             assertEquals(1, serviceResponse.getTotalElements());
             assertEquals(response, serviceResponse.getContent().get(0));
 
-            verify(cardRepository, times(1)).findAll(pageable);
+            verify(cardRepository, times(1)).findCardIds(pageable);
+            verify(cardRepository, times(1)).findAllWithUsersByIds(ids.getContent());
             verify(cardMapper, times(1)).toResponse(card);
         }
 
@@ -179,10 +181,11 @@ class CardServiceImplTest {
         void givenNoCards_whenGetAllPaged_thenReturnsEmptyPage() {
             // Given
             var pageable = PageRequest.of(0, 10);
-            Page<Card> page = new PageImpl<>(java.util.List.of(), pageable, 0);
+            Page<UUID> ids = new PageImpl<>(List.of(), pageable, 0);
 
             // When
-            when(cardRepository.findAll(pageable)).thenReturn(page);
+            when(cardRepository.findCardIds(pageable)).thenReturn(ids);
+            when(cardRepository.findAllWithUsersByIds(ids.getContent())).thenReturn(List.of());
 
             var serviceResponse = cardService.getAllPaged(pageable);
 
@@ -190,7 +193,8 @@ class CardServiceImplTest {
             assertEquals(0, serviceResponse.getTotalElements());
             assertEquals(0, serviceResponse.getContent().size());
 
-            verify(cardRepository, times(1)).findAll(pageable);
+            verify(cardRepository, times(1)).findCardIds(pageable);
+            verify(cardRepository, times(1)).findAllWithUsersByIds(ids.getContent());
             verify(cardMapper, never()).toResponse(any());
         }
 
@@ -204,7 +208,7 @@ class CardServiceImplTest {
         void givenExistingCard_whenDelete_thenDeletesCardAndEvictsUserCache() {
             // Given
             var card = createCard("TEST_NUMBER", "TEST_HOLDER", LocalDate.now().plusDays(1));
-            var user = createUser(UUID.randomUUID());
+            var user = createUser(UUID.randomUUID().toString());
             card.setUser(user);
 
             // When
@@ -238,16 +242,16 @@ class CardServiceImplTest {
 
     private CardCreateRequest createCardCreateRequest() {
         return new CardCreateRequest(
-                UUID.randomUUID(),
+                UUID.randomUUID().toString(),
                 "TEST_NUMBER",
                 "TEST_HOLDER",
                 LocalDate.now().plusDays(1)
         );
     }
 
-    private User createUser(UUID id) {
+    private User createUser(String userId) {
         var user = new User();
-        user.setId(id);
+        user.setUserId(userId);
         return user;
     }
 
@@ -261,7 +265,7 @@ class CardServiceImplTest {
         );
     }
 
-    private CardResponse createCardResponse(Card card, UUID userId) {
+    private CardResponse createCardResponse(Card card, String userId) {
         return new CardResponse(
                 card.getId(),
                 userId,

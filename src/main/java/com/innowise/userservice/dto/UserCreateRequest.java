@@ -4,15 +4,14 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.innowise.userservice.dto.serialization.LocalDateDeserializer;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Past;
 
 import java.time.LocalDate;
-import java.util.UUID;
 
 public record UserCreateRequest(
-        @NotNull(message = "ID is required")
-        UUID id,
+        @NotBlank(message = "User ID is required")
+        String userId,
+
         @NotBlank(message = "Name is required")
         String name,
         @NotBlank(message = "Surname is required")

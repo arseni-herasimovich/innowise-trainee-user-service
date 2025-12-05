@@ -17,8 +17,8 @@ public class SecurityService {
     private final CardRepository cardRepository;
 
     public boolean canCreateUser(String userId, UserCreateRequest request) {
-        log.debug("Authorizing user creation with id {} by user with id {}", request != null ? request.id() : "null", userId);
-        if (userId != null && request != null && userId.equals(request.id().toString())) {
+        log.debug("Authorizing user creation with id {} by user with id {}", request != null ? request.userId() : "null", userId);
+        if (userId != null && request != null && userId.equals(request.userId())) {
             return true;
         }
         throw new AccessDeniedException("You do not have rights to create user with id not equals to yours");
@@ -26,7 +26,7 @@ public class SecurityService {
 
     public boolean canCreateCard(String userId, CardCreateRequest request) {
         log.debug("Authorizing card creation with userId {} by user with id {}", request != null ? request.userId() : "null", userId);
-        if (userId != null && request != null && userId.equals(request.userId().toString())) {
+        if (userId != null && request != null && userId.equals(request.userId())) {
             return true;
         }
         throw new AccessDeniedException("You do not have rights to create card with userId not equals to yours");
@@ -39,7 +39,7 @@ public class SecurityService {
         }
 
         return cardRepository.findCardById(cardId)
-                .filter(card -> card.getUser().getId().toString().equals(userId))
+                .filter(card -> card.getUser().getUserId().equals(userId))
                 .map(card -> true)
                 .orElseThrow(() -> new AccessDeniedException("You do not have rights to access this card"));
     }

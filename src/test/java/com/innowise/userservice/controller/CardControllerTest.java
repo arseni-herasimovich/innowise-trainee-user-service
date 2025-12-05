@@ -54,10 +54,10 @@ class CardControllerTest extends AbstractIntegrationTest {
         void givenValidData_whenCreate_thenSavesCardAndReturnsCardResponse() throws Exception {
             // Given
             var newUser = createTestUser();
-            var userId = userRepository.save(newUser).getId();
+            var user = userRepository.save(newUser);
 
             var request = new CardCreateRequest(
-                    userId,
+                    user.getUserId(),
                     "TEST_NUMBER",
                     "TEST_HOLDER",
                     LocalDate.now().plusDays(1)
@@ -71,12 +71,13 @@ class CardControllerTest extends AbstractIntegrationTest {
                     .andExpectAll(
                             jsonPath("$.success", is(true)),
                             jsonPath("$.data.number", is(request.number())),
+                            jsonPath("$.data.userId", is(request.userId())),
                             jsonPath("$.data.id").exists()
                     );
 
             var card = cardRepository.findAll().get(0);
             assertNotNull(card);
-            assertEquals(request.userId(), card.getUser().getId());
+            assertEquals(request.userId(), card.getUser().getUserId());
             assertEquals(request.number(), card.getNumber());
             assertEquals(request.holder(), card.getHolder());
         }
@@ -87,7 +88,7 @@ class CardControllerTest extends AbstractIntegrationTest {
         void givenExistingCardNumber_whenCreate_thenReturnsConflict() throws Exception {
             // Given
             var newUser = createTestUser();
-            var userId = userRepository.save(newUser).getId();
+            var userId = userRepository.save(newUser).getUserId();
             var newCard = new Card(
                     null,
                     newUser,
@@ -299,7 +300,7 @@ class CardControllerTest extends AbstractIntegrationTest {
 
     private User createTestUser() {
         var user = new User();
-        user.setId(UUID.randomUUID());
+        user.setUserId(UUID.randomUUID().toString());
         user.setName("TEST_NAME");
         user.setSurname("TEST_SURNAME");
         user.setBirthDate(LocalDate.now().minusDays(1));

@@ -40,7 +40,7 @@ public class UserGrpcServiceTest {
         var userId = UUID.randomUUID();
 
         var request = new UserCreateRequest(
-                userId,
+                userId.toString(),
                 "TEST_NAME",
                 "TEST_SURNAME",
                 LocalDate.now().minusDays(1),
@@ -48,20 +48,20 @@ public class UserGrpcServiceTest {
         );
 
         var response = new UserResponse(
-                userId,
+                userId.toString(),
                 "TEST_NAME",
                 "TEST_SURNAME",
                 LocalDate.now().minusDays(1),
                 "TEST@EMAIL",
                 null
-        );
+                );
 
         var grpcRequest = User.UserCreateRequest.newBuilder()
-                .setId(userId.toString())
+                .setUserId(userId.toString())
                 .build();
 
         var grpcResponse = User.UserResponse.newBuilder()
-                .setId(userId.toString())
+                .setUserId(userId.toString())
                 .build();
 
         // When
@@ -82,7 +82,7 @@ public class UserGrpcServiceTest {
     @DisplayName("Should return already exists when user already exists")
     void givenExistingUser_whenCreateUser_thenReturnsStatusAlreadyExists() {
         // Given
-        var userId = UUID.randomUUID();
+        var userId = UUID.randomUUID().toString();
 
         var request = new UserCreateRequest(
                 userId,
@@ -93,7 +93,7 @@ public class UserGrpcServiceTest {
         );
 
         var grpcRequest = User.UserCreateRequest.newBuilder()
-                .setId(userId.toString())
+                .setUserId(userId)
                 .build();
 
         // When
@@ -114,7 +114,7 @@ public class UserGrpcServiceTest {
     @DisplayName("Should return error when exception occurred")
     void givenException_whenCreateUser_thenReturnsStatusUnknown() {
         // Given
-        var userId = UUID.randomUUID();
+        var userId = UUID.randomUUID().toString();
 
         var request = new UserCreateRequest(
                 userId,
@@ -125,7 +125,7 @@ public class UserGrpcServiceTest {
         );
 
         var grpcRequest = User.UserCreateRequest.newBuilder()
-                .setId(userId.toString())
+                .setUserId(userId)
                 .build();
 
         // When

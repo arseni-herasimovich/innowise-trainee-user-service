@@ -17,8 +17,12 @@ import java.util.UUID;
 @NoArgsConstructor
 public class User {
     @Id
+    @GeneratedValue
     @Column(name = "id")
     private UUID id;
+
+    @Column(name = "user_id", nullable = false, unique = true)
+    private String userId;
 
     @Column(name = "name", nullable = false)
     private String name;
